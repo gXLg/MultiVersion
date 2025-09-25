@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 @SuppressWarnings({"SameParameterValue", "unused"})
 public class Reflection {
-    static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
+    public static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
         try {
             Constructor<?> con = clazz.getConstructor(params);
             return con.newInstance(args);
@@ -16,7 +16,7 @@ public class Reflection {
         }
     }
 
-    static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
+    public static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
         for (String method : methods) {
             try {
                 return clazz.getMethod(method, args);
@@ -27,7 +27,7 @@ public class Reflection {
         throw new RuntimeException("method not found from " + Arrays.toString(methods) + " for class " + clazz.getName() + " with args " + Arrays.toString(args));
     }
 
-    static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, String... methods) {
+    public static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, String... methods) {
         if (args == null) args = new Object[0];
 
         Class<?>[] search = new Class<?>[args.length];
@@ -36,7 +36,7 @@ public class Reflection {
         return invokeMethod(clazz, instance, args, search, methods);
     }
 
-    static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
+    public static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
         if (args == null) args = new Object[0];
         if (search == null) search = new Class<?>[0];
 
@@ -48,7 +48,7 @@ public class Reflection {
         }
     }
 
-    static Class<?> clazz(String... classes) {
+    public static Class<?> clazz(String... classes) {
         for (String clazz : classes) {
             try {
                 return Thread.currentThread().getContextClassLoader().loadClass(clazz);
@@ -58,7 +58,7 @@ public class Reflection {
         throw new RuntimeException("Class not found from " + Arrays.toString(classes));
     }
 
-    static Object field(Class<?> clazz, Object instance, String... fields) {
+    public static Object field(Class<?> clazz, Object instance, String... fields) {
         for (String field : fields) {
             try {
                 Field f = clazz.getField(field);
@@ -69,7 +69,7 @@ public class Reflection {
         throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
-    static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
+    public static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
         for (String field : fields) {
             try {
                 Field f = clazz.getField(field);
@@ -81,4 +81,14 @@ public class Reflection {
         throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
+    public static String getVersion() {
+        Class<?> clazzGameVersion = clazz("net.minecraft.class_6489", "com.mojang.bridge.game.GameVersion", "net.minecraft.GameVersion");
+        Class<?> clazzConstants = SharedConstants.class;
+        Object gameVersion = invokeMethod(clazzConstants, null, null, "method_16673", "getGameVersion");
+        try {
+            return (String) invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName");
+        } catch (Exception ignored) {
+            return (String) invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name");
+        }
+    }
 }
