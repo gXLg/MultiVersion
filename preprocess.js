@@ -1,7 +1,7 @@
 const fs = require("fs");
 const file = process.argv[2];
 const content = fs.readFileSync(file, "utf-8");
-const { package } = JSON.load(fs.readFileSync("./multi-version.json"));
+const { package } = JSON.parse(fs.readFileSync("./multi-version.json"));
 
 function error(text) {
   throw new Error("MultiVersion error in '" + file + "'\n" + text);
