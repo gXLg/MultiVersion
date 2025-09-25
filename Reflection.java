@@ -81,14 +81,52 @@ public class Reflection {
         throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
-    public static String getVersion() {
-        Class<?> clazzGameVersion = clazz("net.minecraft.class_6489", "com.mojang.bridge.game.GameVersion", "net.minecraft.GameVersion");
+    public static MinecraftVersion getVersion() {
+        Class<?> clazzGameVersion = Reflection.clazz("com.mojang.bridge.game.GameVersion", "net.minecraft.class_6489", "net.minecraft.GameVersion");
         Class<?> clazzConstants = SharedConstants.class;
-        Object gameVersion = invokeMethod(clazzConstants, null, null, "method_16673", "getGameVersion");
+        Object gameVersion = Reflection.invokeMethod(clazzConstants, null, null, "method_16673", "getGameVersion");
         try {
-            return (String) invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName");
+            return new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
         } catch (Exception ignored) {
-            return (String) invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name");
+            return new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
+        }
+    }
+
+    public static class MinecraftVersion implements Comparable<MinecraftVersion> {
+        private final int major;
+        private final int minor;
+        private final int patch;
+
+        public MinecraftVersion(String version) {
+            String[] mainParts = version.split("-", 2);
+            String[] nums = mainParts[0].split("\\.");
+            this.major = nums.length > 0 ? Integer.parseInt(nums[0]) : 0;
+            this.minor = nums.length > 1 ? Integer.parseInt(nums[1]) : 0;
+            this.patch = nums.length > 2 ? Integer.parseInt(nums[2]) : 0;
+        }
+
+        @Override
+        public int compareTo(MinecraftVersion other) {
+            if (this.major != other.major) return Integer.compare(this.major, other.major);
+            if (this.minor != other.minor) return Integer.compare(this.minor, other.minor);
+            return Integer.compare(this.patch, other.patch);
+        }
+
+        public boolean higher(MinecraftVersion other) {
+            return this.compareTo(other) > 0;
+        }
+
+        public boolean lower(MinecraftVersion other) {
+            return this.compareTo(other) < 0;
+        }
+
+        public boolean equals(MinecraftVersion other) {
+            return this.compareTo(other) == 0;
+        }
+
+        @Override
+        public String toString() {
+            return major + "." + minor + "." + patch;
         }
     }
 }
