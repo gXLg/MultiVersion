@@ -12,9 +12,8 @@ tasks.register("preprocessMultiVersion") {
             into "tmp"
         }
         inj.execOps.exec {
-            commandLine "node", "MultiVersion/initialize.js"
             fileTree("src") each { file ->
-                commandLine "node", "MultiVersion/process.js", file
+                commandLine "node", "MultiVersion/preprocess.js", file
             }
             commandLine "node", "MultiVersion/finalize.js"
         }
