@@ -1,6 +1,7 @@
 const fs = require("fs");
 const file = process.argv[2];
 const content = fs.readFileSync(file, "utf-8");
+const { package } = JSON.load(fs.readFileSync("./multi-version.json"));
 
 function error(text) {
   throw new Error("MultiVersion error in '" + file + "'\n" + text);
@@ -176,7 +177,7 @@ function reflexion(input) {
       l.push(parseToken(true));
     }
   }
-  return l.map(init).map(v => v.value).join("");
+  return l.map(init).map(v => v.value).join("") + ";";
 }
 
 const ref = [];
@@ -184,6 +185,9 @@ for (const line of final.split("\n")) {
   if (line.includes("//% ")) ref.push(reflection(line.slice(4)));
   else if (line.includes("true /*")) ref.push(version(line));
   else ref.push(line);
+}
+if (ref.join("\n") != final) {
+  ref.splice(1, 0, ["import " + package + ".Reflection;"]);
 }
 
 fs.writeFileSync(file, ref.join("\n"));
