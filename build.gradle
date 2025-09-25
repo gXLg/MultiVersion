@@ -1,0 +1,37 @@
+// pre-processor for MultiVersion
+interface InjExOps {
+    @Inject
+    ExecOperations getExecOps()
+}
+
+tasks.register("preprocessMultiVersion") {
+    def inj = project.objects.newInstance(InjExOps)
+    doLast {
+        copy {
+            from "src"
+            into "tmp"
+        }
+        inj.execOps.exec {
+            commandLine "node", "MultiVersion/initialize.js"
+            fileTree("src") each { file ->
+                commandLine "node", "MultiVersion/process.js", file
+            }
+            commandLine "node", "MultiVersion/finalize.js"
+        }
+    }
+}
+
+tasks.register("cleanupMultiVersion") {
+    doLast {
+        copy {
+            from "tmp"
+            into "src"
+        }
+        delete "tmp"
+    }
+}
+
+compileJava {
+    dependsOn preprocessMultiVersion
+    finalizedBy cleanupMultiVersion
+}
