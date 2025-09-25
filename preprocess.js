@@ -1,0 +1,189 @@
+const fs = require("fs");
+const file = process.argv[2];
+const content = fs.readFileSync(file, "utf-8");
+
+function error(text) {
+  throw new Error("MultiVersion error in '" + file + "'\n" + text);
+}
+
+// wrap executors
+let final = content;
+for (const match of content.matchAll(/\/\/\/[ ]*<%(.*?)\/\/\/[ ]*%>/gms)) {
+    const lines = match[1].split("\n");
+    const codel = [];
+    const execl = [];
+    for (const line of lines) {
+        if (line.trim().startsWith("///")) execl.push(line.split("///")[1].trim());
+        else codel.push(line);
+    }
+    const code = codel.join("\n");
+    const exec = execl.join("");
+    const whitespace = lines.slice(-1)[0].split("///")[0];
+    const result = ["// auto-generated {"].concat(eval(exec)).join("") + "// }";
+    final = final.replace(match[0], result);
+}
+
+// wrap reflexion
+function version(line) {
+  const [cmp, version] = line.match(/[/][*](.*?)[*][/]/)[1].trim().split(/[ ]+/);
+  let l = [];
+  for (const c of cmp) {
+    const op = {"=": "equals", ">": "higher", "<": "lower"}[c] ?? "equals";
+    l.push("Reflection.getVersion." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
+  }
+  return line.replace("true /*", "(" + l.join(" || ") + ") /*");
+}
+
+function reflexion(input) {
+  let i = 0;
+
+  function skipWhitespace() {
+    while (i < input.length && /\s/.test(input[i])) i++;
+  }
+
+  function parseToken(raw) {
+    let start = i;
+    if (raw) {
+      while (i < input.length && input[i] !== "[") i++;
+    } else {
+      while (i < input.length && !/[\s:/\[\]/]/.test(input[i])) i++;
+    }
+    return { type: raw ? "string" : "token", value: input.slice(start, i) };
+  }
+
+  function parseList() {
+    const items = [];
+    while (i < input.length && input[i] !== "]" && input[i] !== ":" && !/\s/.test(input[i])) {
+      if (input[i] === "/") {
+        i++; // skip /
+        continue;
+      }
+      if (input[i] === "[") {
+        i++;
+        items.push(parseBracket());
+        if (input[i] === "]") i++;
+        else error("Bracket not closed");
+      } else {
+        items.push(parseToken());
+      }
+    }
+    return items.length > 1 ? { type: "list", value: items } : items[0];
+  }
+
+  function parseBracket() {
+    const elements = [];
+    while (i < input.length && input[i] !== "]") {
+      if (input[i] === "[") {
+        i++;
+        elements.push(parseBracket());
+        if (input[i] === "]") i++;
+        else error("Bracket not closed");
+      } else if (input[i] === ":") {
+        i++;
+        const left = elements.pop();
+        const right = parseExpression();
+        elements.push({ type: "pair", left, right });
+      } else {
+        const item = parseList();
+        elements.push(item);
+      }
+      skipWhitespace();
+    }
+    return { type: "bracket", value: elements };
+  }
+
+  function parseExpression() {
+    let left;
+    if (input[i] === "[") {
+      i++;
+      left = parseBracket();
+      if (input[i] === "]") i++;
+      else error("Bracket not closed");
+    } else {
+      left = parseToken();
+    }
+    return left;
+  }
+
+  function init(tree) {
+    if (tree.type == "string") return { "type": "token", "value": tree.value };
+    else if (tree.type == "list") {
+      let ltype = null;
+      for (const { "value": v } of tree.value) {
+        if (v.startsWith("method_")) ltype = "method";
+        else if (v.includes(".class_")) ltype = "class";
+        else if (v.startsWith("field_")) ltype = "field";
+        else if (v.startsWith("comp_")) ltype = "component";
+        else continue;
+        break;
+      }
+      if (ltype == null) error("List could not be initialized: " + tree.value.map(v => v.value).join(","));
+      if (ltype == "class") return { "type": "class", "value": "Reflection.clazz(" + tree.value.map(v => '"' + v.value + '"').join(", ") + ")" };
+      return { "type": ltype + "list", "values": tree.value.map(v => v.value) };
+    } else if (tree.type == "token") {
+      if (tree.value[0].toLowerCase() != tree.value[0]) {
+        return { "type": "class", "value": tree.value + ".class" };
+      } else {
+        return { "type": "token", "value": tree.value };
+      }
+    } else if (tree.type == "pair") {
+      const left = init(tree.left);
+      const right = init(tree.right);
+      if (left.type != "class" && left.type != "token") error("Can't initialize typed value: invalid class " + JSON.stringify(left.value));
+      if (right.type != "class" && right.type != "token") error("Can't initialize typed value: invalid value " + JSON.stringify(right.value));
+      return { "type": "typed", "cls": left.value, "val": right.value }
+
+    } else if (tree.type == "bracket") {
+      const v = tree.value.map(init);
+      let s = "";
+
+      // method
+      if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "typed")) {
+        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val) + "}, new Class[]{" + v.slice(2).map(w => w.cls) + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+
+      // field
+      } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
+        s = "Reflection.field(" + v[0].cls + ", " + v[0].val + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        
+      // set field
+      } else if (v[0].type == "typed" && v[1].type == "fieldlist" && (v[2].type == "token" || v[2].type == "class")) {
+        s = "Reflection.setField(" + v[0].cls + ", " + v[0].val + ", " + v[2].value + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+
+      // component
+      } else if (v[0].type == "typed" && v[1].type == "componentlist" && v.length == 2) {
+        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{}, new Class[]{}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+
+      // class
+      } else if (v[0].type == "class" && v.length == 1) {
+        s = v[0].value;
+
+      } else {
+        error("Uknown type of expression: " + v.map(w => w.type).join(", "));
+      }
+      
+      return { "type": "token", "value": s }
+    }
+  }
+
+  const l = [];
+  while (i < input.length) {
+    if (input[i] === "[") {
+      i++;
+      l.push(parseBracket());
+      if (input[i] === "]") i++;
+      else error("Bracket not closed");
+    } else {
+      l.push(parseToken(true));
+    }
+  }
+  return l.map(init).map(v => v.value).join("");
+}
+
+const ref = [];
+for (const line of final.split("\n")) {
+  if (line.includes("//% ")) ref.push(reflection(line.slice(4)));
+  else if (line.includes("true /*")) ref.push(version(line));
+  else ref.push(line);
+}
+
+fs.writeFileSync(file, ref.join("\n"));
