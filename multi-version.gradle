@@ -11,17 +11,23 @@ tasks.register("preprocessMultiVersion") {
             from "src"
             into "tmp"
         }
-        inj.execOps.exec {
-            fileTree("src") each { file ->
-                commandLine "node", "MultiVersion/preprocess.js", file
+        fileTree("src") each { file ->
+            inj.execOps.exec {
+                commandLine "node", "./MultiVersion/preprocess.js", file
             }
-            commandLine "node", "MultiVersion/finalize.js"
+        }
+        inj.execOps.exec {
+            commandLine "node", "./MultiVersion/finalize.js"
         }
     }
 }
 
 tasks.register("cleanupMultiVersion") {
     doLast {
+        copy {
+            from "src"
+            into "tmp2"
+        }
         delete "src"
         copy {
             from "tmp"
