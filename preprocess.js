@@ -42,8 +42,17 @@ function version(line) {
 }
 
 function reflection(line) {
-  const input = line.replace(/Reflection.wrap[(]("(?:[^"\\]|\\.)*")[)]/, e => eval(e.slice(16, -1)))
+  let final = line;
+  while (true) {
+      const found = final.match((/Reflection.wrap[(]("(?:[^"\\]|\\.)*")[)]/g);
+      if (!found) break;
+      const res = transform(eval(found[0].slice(16, -1)));
+      final = final.replace(found[0], "(" + res + ")");
+  }
+  return final;
+}
 
+function transform() {
   let i = 0;
 
   function skipWhitespace() {
@@ -194,9 +203,10 @@ function reflection(line) {
 
 const ref = [];
 for (const line of final.split("\n")) {
-  if (line.includes("Reflection.wrap(")) ref.push(reflection(line));
-  else if (line.includes("Reflection.version(")) ref.push(version(line));
-  else ref.push(line);
+  let l = line;
+  if (line.includes("Reflection.wrap(")) l = reflection(line);
+  if (line.includes("Reflection.version(")) l = version(line);
+  ref.push(l);
 }
 
 fs.writeFileSync(file, ref.join("\n"));
