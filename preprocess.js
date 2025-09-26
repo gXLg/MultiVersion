@@ -26,16 +26,24 @@ for (const match of content.matchAll(/\/\/\/[ ]*<%(.*?)\/\/\/[ ]*%>/gms)) {
 
 // wrap reflexion
 function version(line) {
-  const [cmp, version] = line.match(/[/][*](.*?)[*][/]/)[1].trim().split(/[ ]+/);
-  let l = [];
-  for (const c of cmp) {
-    const op = {"=": "equals", ">": "higher", "<": "lower"}[c] ?? "equals";
-    l.push("Reflection.getVersion()." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
+  let final = line;
+  while (true) {
+      const found = final.match(/Reflection\.version[(]"(?:[^"\\]|\\.)*"[)]/g);
+      if (!found) break;
+      const [cmp, version] = eval(found[0].slice(19, -1)).split(/[ ]+/);
+      let l = [];
+      for (const c of cmp) {
+        const op = {"=": "equals", ">": "higher", "<": "lower"}[c] ?? "equals";
+        l.push("Reflection.getVersion()." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
+      }
+      final = final.replace(found[0], "(" + l.join(" || ") + ")");
   }
-  return line.replace("true /*", "(" + l.join(" || ") + ") /*");
+  return final;
 }
 
-function reflection(input) {
+function reflection(line) {
+  const input = line.replace(/Reflection.wrap[(]("(?:[^"\\]|\\.)*")[)]/, e => eval(e.slice(16, -1)))
+
   let i = 0;
 
   function skipWhitespace() {
@@ -181,17 +189,14 @@ function reflection(input) {
       l.push(parseToken(true));
     }
   }
-  return l.map(init).map(v => v.value).join("").trimRight() + ";";
+  return l.map(init).map(v => v.value).join("");
 }
 
 const ref = [];
 for (const line of final.split("\n")) {
-  if (line.includes("//% ")) ref.push(reflection(line.replace("//% ", "")));
-  else if (line.includes("true /*")) ref.push(version(line));
+  if (line.includes("Reflection.wrap(")) ref.push(reflection(line));
+  else if (line.includes("Reflection.version(")) ref.push(version(line));
   else ref.push(line);
-}
-if (ref.join("\n") != final) {
-  ref.splice(1, 0, "\nimport " + package + ".Reflection;");
 }
 
 fs.writeFileSync(file, ref.join("\n"));
