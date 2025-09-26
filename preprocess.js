@@ -140,7 +140,7 @@ function reflection(input) {
 
       // method
       if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "typed")) {
-        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val) + "}, new Class[]{" + v.slice(2).map(w => w.cls) + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
 
       // field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
@@ -157,6 +157,10 @@ function reflection(input) {
       // class
       } else if (v[0].type == "class" && v.length == 1) {
         s = v[0].value;
+
+      // construct class
+      if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "typed")) {
+        s = "Reflection.construct(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.val) + "}, " + v.slice(1).map(w => w.cls).join(", ") + ")";
 
       } else {
         error("Uknown type of expression: " + v.map(w => w.type).join(", "));
