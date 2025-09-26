@@ -124,8 +124,7 @@ function transform() {
   }
 
   function init(tree) {
-    if (tree.type == "string") return { "type": "token", "value": tree.value };
-    else if (tree.type == "list") {
+    if (tree.type == "list") {
       let ltype = null;
       for (const { "value": v } of tree.value) {
         if (v.startsWith("method_")) ltype = "method";
@@ -187,18 +186,7 @@ function transform() {
     }
   }
 
-  const l = [];
-  while (i < input.length) {
-    if (input[i] === "[") {
-      i++;
-      l.push(parseBracket());
-      if (input[i] === "]") i++;
-      else error("Bracket not closed");
-    } else {
-      l.push(parseToken(true));
-    }
-  }
-  return l.map(init).map(v => v.value).join("");
+  return init(parseBracket()).value;
 }
 
 const ref = [];
