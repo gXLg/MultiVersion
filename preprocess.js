@@ -159,7 +159,7 @@ function reflection(input) {
         s = v[0].value;
 
       // construct class
-      if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "typed")) {
+      } else if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "typed")) {
         s = "Reflection.construct(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.val) + "}, " + v.slice(1).map(w => w.cls).join(", ") + ")";
 
       } else {
