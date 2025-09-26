@@ -30,12 +30,12 @@ function version(line) {
   let l = [];
   for (const c of cmp) {
     const op = {"=": "equals", ">": "higher", "<": "lower"}[c] ?? "equals";
-    l.push("Reflection.getVersion." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
+    l.push("Reflection.getVersion()." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
   }
   return line.replace("true /*", "(" + l.join(" || ") + ") /*");
 }
 
-function reflexion(input) {
+function reflection(input) {
   let i = 0;
 
   function skipWhitespace() {
@@ -177,17 +177,17 @@ function reflexion(input) {
       l.push(parseToken(true));
     }
   }
-  return l.map(init).map(v => v.value).join("") + ";";
+  return l.map(init).map(v => v.value).join("").trimRight() + ";";
 }
 
 const ref = [];
 for (const line of final.split("\n")) {
-  if (line.includes("//% ")) ref.push(reflection(line.slice(4)));
+  if (line.includes("//% ")) ref.push(reflection(line.replace("//% ", "")));
   else if (line.includes("true /*")) ref.push(version(line));
   else ref.push(line);
 }
 if (ref.join("\n") != final) {
-  ref.splice(1, 0, ["import " + package + ".Reflection;"]);
+  ref.splice(1, 0, "\nimport " + package + ".Reflection;");
 }
 
 fs.writeFileSync(file, ref.join("\n"));
