@@ -7,6 +7,7 @@ interface InjExOps {
 tasks.register("preprocessMultiVersion") {
     def inj = project.objects.newInstance(InjExOps)
     doLast {
+        delete "prep"
         copy {
             from "src"
             into "prep"
@@ -19,20 +20,18 @@ tasks.register("preprocessMultiVersion") {
         inj.execOps.exec {
             commandLine "node", "./MultiVersion/finalize.js"
         }
+
+        sourceSets.client.java.srcDirs = ["prep/client/java"]
     }
 }
 
 tasks.register("cleanupMultiVersion") {
     doLast {
-        delete "prep"
+        sourceSets.client.java.srcDirs = ["src/client/java"]
     }
 }
 
 compileJava {
     dependsOn preprocessMultiVersion
     finalizedBy cleanupMultiVersion
-}
-
-sourceSets.client.java {
-    setSrcDirs(["prep/client/java"])
 }
