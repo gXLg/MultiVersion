@@ -21,13 +21,13 @@ tasks.register("preprocessMultiVersion") {
             commandLine "node", "./MultiVersion/finalize.js"
         }
 
-        sourceSets.client.java.srcDirs = ["prep/client/java"]
+        sourceSets.client.java.srcDirs = ["prep/main/java"]
     }
 }
 
 tasks.register("cleanupMultiVersion") {
     doLast {
-        sourceSets.client.java.srcDirs = ["src/client/java"]
+        sourceSets.client.java.srcDirs = ["src/main/java"]
     }
 }
 
