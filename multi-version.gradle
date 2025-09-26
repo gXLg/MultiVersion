@@ -9,9 +9,9 @@ tasks.register("preprocessMultiVersion") {
     doLast {
         copy {
             from "src"
-            into "tmp"
+            into "prep"
         }
-        fileTree("src") each { file ->
+        fileTree("prep") each { file ->
             inj.execOps.exec {
                 commandLine "node", "./MultiVersion/preprocess.js", file
             }
@@ -24,20 +24,15 @@ tasks.register("preprocessMultiVersion") {
 
 tasks.register("cleanupMultiVersion") {
     doLast {
-        copy {
-            from "src"
-            into "tmp2"
-        }
-        delete "src"
-        copy {
-            from "tmp"
-            into "src"
-        }
-        delete "tmp"
+        delete "prep"
     }
 }
 
 compileJava {
     dependsOn preprocessMultiVersion
     finalizedBy cleanupMultiVersion
+}
+
+sourceSets.client.java {
+    setSrcDirs(["prep/client/java"])
 }
