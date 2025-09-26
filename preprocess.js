@@ -52,7 +52,7 @@ function reflection(line) {
   return final;
 }
 
-function transform() {
+function transform(input) {
   let i = 0;
 
   function skipWhitespace() {
