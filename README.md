@@ -55,7 +55,7 @@ if (Reflection.version("= 1.19.3")) {
 7. To use Reflection-based code, follow the next paragraph
 
 # Reflection Scripting Language (RSL)
-First you have to understand, that Minecraft uses different class, method and fields names when releasing the game.
+First you have to understand, that Mojang uses different class, method and field names when releasing the game.
 The names are all seemingly random and are non-intuitive, like `aq`, `kf()` or `Rt`.
 Not only are they chaotic, but they also keep changing between even two small releases.
 
@@ -170,3 +170,7 @@ Apart from that, I enjoy my free time by spending it with friends, chatting onli
 
 If you want to keep this project alive, found it helpful or just want to support and motivate me to go on,
 you could consider making a small [<kbd>☕ donation</kbd>](https://www.paypal.com/donate?hosted_button_id=DVC2UQP2AXR68).
+
+---
+
+NOT AN OFFICIAL MINECRAFT SERVICE. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
