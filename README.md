@@ -54,7 +54,7 @@ if (Reflection.version("= 1.19.3")) {
 ```
 7. To use Reflection-based code, follow the next paragraph
 
-# Reflection Scripting Language (RSL)
+# Reflection Sugar Language (RSL)
 First you have to understand, that Mojang uses different class, method and field names when releasing the game.
 The names are all seemingly random and are non-intuitive, like `aq`, `kf()` or `Rt`.
 Not only are they chaotic, but they also keep changing between even two small releases.
