@@ -30,7 +30,14 @@ no matter how much the API changes.
 
 # Usage
 1. Install `Node.js`
-2. Download the repository to the root of your project
+2. Download the repository to the root of your project, either clone it directly:
+```
+git clone https://github.com/gXLg/MultiVersion
+```
+or add it as a submodule:
+```
+git submodule add https://github.com/gXLg/MultiVersion
+```
 3. Create a config file `multi-version.json` with following content:
 ```json
 {
