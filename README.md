@@ -20,7 +20,7 @@
 Run different code depending on which Minecraft version is currently being used. Simply use a provided stub function and the preprocessor will turn it into
 fully working Java code.
 
-**The power of Reflection**<br>
+**The Power of Reflection**<br>
 Executing code at runtime, which is not available at compile time?
 Java's most powerful tool - Reflection, - makes it possible!
 And the _powerful_ preprocessor allows you to write very simple code aimed directly at Reflection for Minecraft.
