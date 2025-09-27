@@ -17,7 +17,7 @@
 **A**: That's where MultiVersion's _preprocessing_ comes in!
 
 **Version Filtering**<br>
-Run different code depending on which Minecraft version is currently used. Simply use a provided stub funtion and the preprocessor will turn it into
+Run different code depending on which Minecraft version is currently being used. Simply use a provided stub function and the preprocessor will turn it into
 fully working Java code.
 
 **The power of Reflection**<br>
