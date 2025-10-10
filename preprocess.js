@@ -139,17 +139,20 @@ function transform(input) {
       return { "type": ltype + "list", "values": tree.value.map(v => v.value) };
     } else if (tree.type == "token") {
       const v = tree.value;
+      if (v[0] == "@") {
+        return { "type": "typed", "cls": "(" + v.slice(1) + ").getClass()", "val": v.slice(1) };
+      }
       if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && /^[A-Z][a-zA-Z0-9_$]+$/.test(v))) {
         return { "type": "class", "value": v + ".class" };
-      } else {
-        return { "type": "token", "value": v };
       }
+      return { "type": "token", "value": v };
+
     } else if (tree.type == "pair") {
       const left = init(tree.left);
       const right = init(tree.right);
       if (left.type != "class" && left.type != "token") error("Can't initialize typed value: invalid class " + JSON.stringify(left.value));
       if (right.type != "class" && right.type != "token") error("Can't initialize typed value: invalid value " + JSON.stringify(right.value));
-      return { "type": "typed", "cls": left.value, "val": right.value }
+      return { "type": "typed", "cls": left.value, "val": right.value };
 
     } else if (tree.type == "bracket") {
       const v = tree.value.map(init);
