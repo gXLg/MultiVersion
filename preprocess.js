@@ -123,6 +123,9 @@ function transform(input) {
     return left;
   }
 
+  const preVars = [];
+  let preVarCounter = 0;
+  
   function init(tree) {
     if (tree.type == "list") {
       let ltype = null;
@@ -140,7 +143,9 @@ function transform(input) {
     } else if (tree.type == "token") {
       const v = tree.value;
       if (v[0] == "@") {
-        return { "type": "typed", "cls": "(" + v.slice(1) + ").getClass()", "val": v.slice(1) };
+        const varName = "preVar$" + (preVarCounter++);
+        preVars.push("Object " + varName + " = " + v.slice(1) + ";");
+        return { "type": "typed", "cls": varName + ".getClass()", "val": varName };
       }
       if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && /^[A-Z][a-zA-Z0-9_$]+$/.test(v))) {
         return { "type": "class", "value": v + ".class" };
@@ -190,7 +195,7 @@ function transform(input) {
     }
   }
 
-  return init(parseBracket()).value;
+  return preVars.join(" ") + init(parseBracket()).value;
 }
 
 const ref = [];
