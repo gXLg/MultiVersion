@@ -34,7 +34,7 @@ function version(line) {
       let l = [];
       for (const c of cmp) {
         const op = {"=": "equals", ">": "higher", "<": "lower"}[c] ?? "equals";
-        l.push("Reflection.getVersion()." + op + "(new Reflection.MinecraftVersion(\"" + version + "\"))");
+        l.push("Reflection.getVersion()." + op + "(\"" + version + "\")");
       }
       final = final.replace(found[0], "(" + l.join(" || ") + ")");
   }
