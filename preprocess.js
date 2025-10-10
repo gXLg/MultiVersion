@@ -156,7 +156,7 @@ function transform(input) {
 
       // method
       if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "typed")) {
-        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.invokeMethod(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
 
       // field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
@@ -168,7 +168,7 @@ function transform(input) {
 
       // component
       } else if (v[0].type == "typed" && v[1].type == "componentlist" && v.length == 2) {
-        s = "Reflection.method(" + v[0].cls + ", " + v[0].val + ", new Object[]{}, new Class[]{}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.invokeMethod(" + v[0].cls + ", " + v[0].val + ", new Object[]{}, new Class[]{}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
 
       // class
       } else if (v[0].type == "class" && v.length == 1) {
