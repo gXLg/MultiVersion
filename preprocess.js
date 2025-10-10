@@ -201,8 +201,8 @@ function transform(input) {
 const ref = [];
 for (const line of final.split("\n")) {
   let l = line;
-  if (line.includes("Reflection.wrap(")) l = reflection(line);
-  if (line.includes("Reflection.version(")) l = version(line);
+  if (l.includes("Reflection.version(")) l = version(l);
+  if (l.includes("Reflection.wrap(")) l = reflection(l);
   ref.push(l);
 }
 
