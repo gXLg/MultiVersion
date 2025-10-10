@@ -123,8 +123,8 @@ function transform(input) {
     return left;
   }
 
-  const preVars = [];
-  let preVarCounter = 0;
+  const varArgs = [];
+  let varArgsCounter = 0;
   
   function init(tree) {
     if (tree.type == "list") {
@@ -143,8 +143,8 @@ function transform(input) {
     } else if (tree.type == "token") {
       const v = tree.value;
       if (v[0] == "@") {
-        const varName = "preVar$" + (preVarCounter++);
-        preVars.push("Object " + varName + " = " + v.slice(1) + ";");
+        varArgs.push(v.slice(1));
+        const varName = "$args[" + (varArgsCounter++) + "]";
         return { "type": "typed", "cls": varName + ".getClass()", "val": varName };
       }
       if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && /^[A-Z][a-zA-Z0-9_$]+$/.test(v))) {
@@ -195,7 +195,11 @@ function transform(input) {
     }
   }
 
-  return preVars.join(" ") + init(parseBracket()).value;
+  const c = init(parseBracket()).value;
+  if (varArgs.length) {
+    return "(((Function<Object[], Object>)($args -> " + c + ")).apply(new Object[]{" + varArgs.join(", ") + "}))";
+  }
+  return c;
 }
 
 const ref = [];
