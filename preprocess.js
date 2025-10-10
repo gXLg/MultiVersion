@@ -138,7 +138,7 @@ function transform(input) {
       if (ltype == "class") return { "type": "class", "value": "Reflection.clazz(" + tree.value.map(v => '"' + v.value + '"').join(", ") + ")" };
       return { "type": ltype + "list", "values": tree.value.map(v => v.value) };
     } else if (tree.type == "token") {
-      if (tree.value[0].toLowerCase() != tree.value[0]) {
+      if (tree.value[0].toLowerCase() != tree.value[0] || ["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(tree.value)) {
         return { "type": "class", "value": tree.value + ".class" };
       } else {
         return { "type": "token", "value": tree.value };
