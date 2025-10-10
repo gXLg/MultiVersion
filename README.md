@@ -104,7 +104,7 @@ There are multiple types of pre-transformation nodes:
   * Class Tokens created from capitalized Tokens nad primitives get `.class` appended during transformation
 * Typed Values - transformed Pairs; after all verification and transformation made on both the left and the right element, they both must be either a Simple Token or a Class Token
   * Another possibility to create Typed Values are so-called Self-Typed Values, which are regular Tokens annotated by `@`; the resulting class will be `(tokne).getClass()`
-  * Only use Self-Typed Values when dealing with primitives or objects of non-inherited classes
+  * Only use Self-Typed Values when dealing with non-primitives and objects of non-inherited classes
 * Lists:
   * Method List - a List of Tokens, one of which is in form `method_123`
   * Field List - a List of Tokens, one of which is in form `field_123`
