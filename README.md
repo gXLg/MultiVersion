@@ -100,8 +100,8 @@ There are multiple types of pre-transformation nodes:
   * When a Bracket is being transformed it also returns a Simple Token, which is why the term "token" may be a bit confusing;
     here "token" simply means "a single information unit, which can't be further broken down"
 * Class Tokens - special Tokens, which have their first letter uppercased, indicating that a Java class is being referenced
-  * There are two possiblities to create Class Tokens - either by having a Token with its first letter being capitalized or by a List of Tokens, one of which is in form `net.minecraft.class_123`
-  * Class Tokens created from capitalized Tokens get `.class` appended during transformation
+  * There are two possiblities to create Class Tokens - either by having a Token with its first letter being capitalized, a Token equal to one of Java primitives (e.g. `int`, `boolean` etc.) or a List of Tokens, one of which is in form `net.minecraft.class_123`
+  * Class Tokens created from capitalized Tokens nad primitives get `.class` appended during transformation
 * Typed Values - transformed Pairs; after all verification and transformation made on both the left and the right element, they both must be either a Simple Token or a Class Token
 * Lists:
   * Method List - a List of Tokens, one of which is in form `method_123`
