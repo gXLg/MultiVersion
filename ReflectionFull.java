@@ -5,6 +5,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuppressWarnings({"SameParameterValue", "unused"})
 public class Reflection {
@@ -83,15 +85,18 @@ public class Reflection {
         throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
+    private static MinecraftVersion version = null;
     public static MinecraftVersion getVersion() {
+        if (version != null) return version;
         Class<?> clazzGameVersion = Reflection.clazz("com.mojang.bridge.game.GameVersion", "net.minecraft.class_6489", "net.minecraft.GameVersion");
         Class<?> clazzConstants = SharedConstants.class;
         Object gameVersion = Reflection.invokeMethod(clazzConstants, null, null, "method_16673", "getGameVersion");
         try {
-            return new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
+            version = new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
         } catch (Exception ignored) {
-            return new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
+            version = new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
         }
+        return version;
     }
 
     public static class MinecraftVersion implements Comparable<MinecraftVersion> {
@@ -107,28 +112,32 @@ public class Reflection {
             this.patch = nums.length > 2 ? Integer.parseInt(nums[2]) : 0;
         }
 
-        @Override
-        public int compareTo(MinecraftVersion other) {
+        private final Map<String, Integer> cache = new HashMap<>();
+        
+        public int compare(String other) {
+            if (cache.containsKey(other)) return cache.get(other);
+            int cmp = compareInternal(new MinecraftVersion(other));
+            cache.put(other, cmp);
+            return cmp;
+        }
+
+        private int compareInternal(MinecraftVersion other) {
             if (this.major != other.major) return Integer.compare(this.major, other.major);
             if (this.minor != other.minor) return Integer.compare(this.minor, other.minor);
             return Integer.compare(this.patch, other.patch);
         }
 
-        public boolean higher(MinecraftVersion other) {
-            return this.compareTo(other) > 0;
+        
+        public boolean higher(String other) {
+            return this.compare(other) > 0;
         }
 
-        public boolean lower(MinecraftVersion other) {
-            return this.compareTo(other) < 0;
+        public boolean lower(String other) {
+            return this.compare(other) < 0;
         }
 
-        public boolean equals(MinecraftVersion other) {
-            return this.compareTo(other) == 0;
-        }
-
-        @Override
-        public String toString() {
-            return major + "." + minor + "." + patch;
+        public boolean equals(String other) {
+            return this.compare(other) == 0;
         }
     }
 }
