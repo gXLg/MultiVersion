@@ -99,7 +99,7 @@ public class Reflection {
         return version;
     }
 
-    public static class MinecraftVersion implements Comparable<MinecraftVersion> {
+    public static class MinecraftVersion {
         private final int major;
         private final int minor;
         private final int patch;
