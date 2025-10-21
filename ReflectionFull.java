@@ -115,11 +115,11 @@ public class Reflection {
         if (version != null) return version;
         Class<?> clazzGameVersion = Reflection.clazz("com.mojang.bridge.game.GameVersion", "net.minecraft.class_6489", "net.minecraft.GameVersion");
         Class<?> clazzConstants = SharedConstants.class;
-        Object gameVersion = Reflection.invokeMethod(clazzConstants, null, null, "method_16673", "getGameVersion");
+        Object gameVersion = Reflection.invokeMethodTypeless(clazzConstants, null, null, "method_16673", "getGameVersion");
         try {
-            version = new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
+            version = new MinecraftVersion((String) Reflection.invokeMethodTypeless(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
         } catch (Exception ignored) {
-            version = new MinecraftVersion((String) Reflection.invokeMethod(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
+            version = new MinecraftVersion((String) Reflection.invokeMethodTypeless(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
         }
         return version;
     }
