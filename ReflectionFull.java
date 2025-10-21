@@ -170,4 +170,8 @@ public class Reflection {
             return this.compare(other) == 0;
         }
     }
+
+    public static Object noop(Objcet obj) {
+        return obj;
+    }
 }
