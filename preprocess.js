@@ -138,7 +138,7 @@ function transform(input) {
         break;
       }
       if (ltype == null) error("List could not be initialized: " + tree.value.map(v => v.value).join(","));
-      if (ltype == "class") return { "type": "class", "value": "Reflection.clazz(" + tree.value.map(v => '"' + v.value + '"').join(", ") + ")" };
+      if (ltype == "class") return { "type": "class", "value": "Reflection.clazz(" + tree.value.map(v => '"' + ((v.value[0] == "." ? "net.minecraft" : "") + v.value) + '"').join(", ") + ")" };
       return { "type": ltype + "list", "values": tree.value.map(v => v.value) };
     } else if (tree.type == "token") {
       const v = tree.value;
