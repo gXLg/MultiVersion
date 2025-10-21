@@ -239,7 +239,7 @@ let func = false;
 for (const line of final.split("\n")) {
   let l = line;
   if (l.includes("Reflection.version(")) l = version(l);
-  if (l.includes("Reflection.wrap(") || l.includes("Reflection.wrapi(")) l = reflection(l);
+  if (l.includes("Reflection.wrap(") || l.includes("Reflection.wrapi(") || l.includes("Reflection.wrapn(")) l = reflection(l);
   ref.push(l);
   if (l.includes("Function<Object[], Object>")) func = true;
 }
