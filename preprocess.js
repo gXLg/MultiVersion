@@ -46,7 +46,7 @@ function reflection(line) {
       const found = final.match(/Reflection.wrapi?[(]("(?:[^"\\]|\\.)*")(?:,[ ]*[a-zA-Z.$_]+)*[)]/g);
       if (!found) break;
       const res = transform(eval(found[0].match(/"(?:[^"\\]|\\.)*"/)[0]));
-      final = final.replace(found[0], "(" + res + ")");
+      final = final.replace(found[0], res);
   }
   return final;
 }
@@ -149,10 +149,10 @@ function transform(input) {
       if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/))) {
         return { "type": "class", "value": v + ".class" };
       }
-      if (v.endsWith("§l")) return { "type": "class", "values": v.slice(-2) + ".class" };
-      if (v.endsWith("§f")) return { "type": "fieldlist", "values": [v.slice(-2)] };
-      if (v.endsWith("§m")) return { "type": "methodlist", "values": [v.slice(-2)] };
-      if (v.endsWith("§c")) return { "type": "componentlist", "values": [v.slice(-2)] };
+      if (v.endsWith("§l")) return { "type": "class", "values": v.slice(0, -2) + ".class" };
+      if (v.endsWith("§f")) return { "type": "fieldlist", "values": [v.slice(0, -2)] };
+      if (v.endsWith("§m")) return { "type": "methodlist", "values": [v.slice(0, -2)] };
+      if (v.endsWith("§c")) return { "type": "componentlist", "values": [v.slice(0, -2)] };
 
       return { "type": "token", "value": v };
 
