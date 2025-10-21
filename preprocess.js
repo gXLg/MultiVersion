@@ -207,6 +207,10 @@ function transform(input) {
       } else if (v.length == 1 && v[0].type == "class") {
         s = v[0].value;
 
+      // construct class (no args)
+      } else if (v.length == 2 && (v[0].type == "token" || v[0].type == "class") && v[1].type == "token" && v[1].value == "<>") {
+        s = "Reflection.constructTyped(" + v[0].value + ", new Object[0], new Class[0])";
+
       // construct class (typed)
       } else if (v.length >= 1 && (v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "typed")) {
         s = "Reflection.constructTyped(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.val).join(", ") + "}, " + v.slice(1).map(w => w.cls).join(", ") + ")";
@@ -214,10 +218,6 @@ function transform(input) {
       // construct class (typeless)
       } else if (v.length >= 1 && (v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "token" || w.type == "class")) {
         s = "Reflection.constructTypeless(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.value).join(", ") + "})";
-
-      // construct class (no args)
-      } else if (v.length == 2 && (v[0].type == "token" || v[0].type == "class") && v[1].type == "token" && v[1].value == "<>") {
-        s = "Reflection.constructTyped(" + v[0].value + ", new Object[0], new Class[0])";
 
       } else {
         error("Uknown type of expression: [" + v.map(w => w.type).join(" ") + "]");
