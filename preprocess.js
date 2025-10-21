@@ -146,7 +146,8 @@ function transform(input) {
         const varName = "$args[" + (varArgsCounter++) + "]";
         return { "type": "typed", "cls": varName + ".getClass()", "val": varName };
       }
-      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && v.match(/^([A-Z_$][a-zA-Z0-9_$]*[.])*[A-Z_$][a-zA-Z0-9_$]*$/))) {
+      const last = v.split(".").slice(-1)[0];
+      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (last.toUpperCase() != last && v.match(/^([A-Z_$][a-zA-Z0-9_$]*[.])*[A-Z_$][a-zA-Z0-9_$]*$/))) {
         return { "type": "class", "value": v + ".class" };
       }
       if (v.match(/^([a-z_][a-zA-Z0-9_]*[.])+[A-Z_][a-zA-Z0-9_]*$/) || v[0] == ".") {
