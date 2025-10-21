@@ -229,7 +229,7 @@ function transform(input) {
 
   const c = init(parseBracket()).value;
   if (varArgs.length) {
-    return "(((Function<Object[], Object>)($args -> " + c + ")).apply(new Object[]{" + varArgs.join(", ") + "}))";
+    return "Reflection.noop(((Function<Object[], Object>)($args -> " + c + ")).apply(new Object[]{" + varArgs.join(", ") + "}))";
   }
   return c;
 }
