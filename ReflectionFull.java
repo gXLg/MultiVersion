@@ -32,20 +32,33 @@ public class Reflection {
         });
     }
 
-    public static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
+    public static Constructor<?> constructor(Class<?> clazz, Class<?>... params) {
+        return cache(constructorsCache, clazz, params, () -> {
+            try {
+                return clazz.getConstructor(params);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("Constructor not found for class " + clazz.getName() + " with args " + Arrays.toString(params));
+            }
+        });
+    }
+
+    public static Object constructTyped(Class<?> clazz, Object[] args, Class<?>... params) {
+        if (args == null) args = new Object[0];
+        if (params == null) params = new Class<?>[0];
         try {
-            Constructor<?> con = cache(constructorsCache, clazz, params, () -> {
-                try {
-                    return clazz.getConstructor(params);
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException("Constructor not found for class " + clazz.getName() + " with args " + Arrays.toString(params));
-                }
-            });
+            Constructor<?> con = constructor(clazz, params);
             return con.newInstance(args);
         } catch (InvocationTargetException | InstantiationException |
                  IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Object constructTypeless(Class<?> clazz, Object[] args) {
+        if (args == null) args = new Object[0];
+        Class<?>[] params = new Class<?>[args.length];
+        for (int i = 0; i < args.length; i++) params[i] = args[i].getClass();
+        return constructTyped(clazz, args, params);
     }
 
     public static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
@@ -60,15 +73,6 @@ public class Reflection {
         });
     }
 
-    public static Object invokeMethodTypeless(Class<?> clazz, Object instance, Object[] args, String... methods) {
-        if (args == null) args = new Object[0];
-
-        Class<?>[] search = new Class<?>[args.length];
-        for (int i = 0; i < args.length; i++) search[i] = args[i].getClass();
-
-        return invokeMethodTyped(clazz, instance, args, search, methods);
-    }
-
     public static Object invokeMethodTyped(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
         if (args == null) args = new Object[0];
         if (search == null) search = new Class<?>[0];
@@ -78,6 +82,13 @@ public class Reflection {
         } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodError e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Object invokeMethodTypeless(Class<?> clazz, Object instance, Object[] args, String... methods) {
+        if (args == null) args = new Object[0];
+        Class<?>[] search = new Class<?>[args.length];
+        for (int i = 0; i < args.length; i++) search[i] = args[i].getClass();
+        return invokeMethodTyped(clazz, instance, args, search, methods);
     }
 
     public static Field field(Class<?> clazz, String... fields) {
@@ -113,13 +124,13 @@ public class Reflection {
     private static MinecraftVersion version = null;
     public static MinecraftVersion getVersion() {
         if (version != null) return version;
-        Class<?> clazzGameVersion = Reflection.clazz("com.mojang.bridge.game.GameVersion", "net.minecraft.class_6489", "net.minecraft.GameVersion");
+        Class<?> clazzGameVersion = clazz("com.mojang.bridge.game.GameVersion", "net.minecraft.class_6489", "net.minecraft.GameVersion");
         Class<?> clazzConstants = SharedConstants.class;
-        Object gameVersion = Reflection.invokeMethodTypeless(clazzConstants, null, null, "method_16673", "getGameVersion");
+        Object gameVersion = invokeMethodTypeless(clazzConstants, null, null, "method_16673", "getGameVersion");
         try {
-            version = new MinecraftVersion((String) Reflection.invokeMethodTypeless(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
+            version = new MinecraftVersion((String) invokeMethodTypeless(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
         } catch (Exception ignored) {
-            version = new MinecraftVersion((String) Reflection.invokeMethodTypeless(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
+            version = new MinecraftVersion((String) invokeMethodTypeless(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
         }
         return version;
     }
