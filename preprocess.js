@@ -43,7 +43,7 @@ function version(line) {
 function reflection(line) {
   let final = line;
   while (true) {
-      const found = final.match(/Reflection.wrapi?[(]("(?:[^"\\]|\\.)*")(?:,[ ]*[a-zA-Z.$_]+)*[)]/g);
+      const found = final.match(/Reflection.wrap[ni]?[(]("(?:[^"\\]|\\.)*")(?:,[ ]*[a-zA-Z.$_]+)*[)]/g);
       if (!found) break;
       const res = transform(eval(found[0].match(/"(?:[^"\\]|\\.)*"/)[0]));
       final = final.replace(found[0], res);
