@@ -153,7 +153,7 @@ function transform(input) {
       if (v.endsWith("§l")) return { "type": "class", "value": "Reflection.clazz(\"" + ((v[0] == "." ? "net.minecraft" : "") + v) + "\")" };
       if (v.endsWith("§f")) return { "type": "fieldlist", "values": [v] };
       if (v.endsWith("§m")) return { "type": "methodlist", "values": [v] };
-      if (v.endsWith("§c")) return { "type": "complist", "values": [v] };
+      if (v.endsWith("§c")) return { "type": "componentlist", "values": [v] };
 
       return { "type": "token", "value": v };
 
