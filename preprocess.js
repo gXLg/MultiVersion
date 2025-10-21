@@ -178,6 +178,14 @@ function transform(input) {
       // method (typeless)
       } else if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "token" || w.type == "class")) {
         s = "Reflection.invokeMethodTypeless(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.value).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+
+      // static method (typed)
+      if ((v[0].type == "token" || v[0].type == "class") && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "typed")) {
+        s = "Reflection.invokeMethodTyped(" + v[0].value + ", null, new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+
+      // static method (typeless)
+      } else if ((v[0].type == "token" || v[0].type == "class") && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "token" || w.type == "class")) {
+        s = "Reflection.invokeMethodTypeless(" + v[0].value + ", null, new Object[]{" + v.slice(2).map(w => w.value).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
         
       // get field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
