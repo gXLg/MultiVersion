@@ -1,5 +1,4 @@
 import net.minecraft.SharedConstants;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -7,43 +6,72 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 @SuppressWarnings({"SameParameterValue", "unused"})
 public class Reflection {
-    public static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
+    private static final Map<Integer, Class<?>> clazzCache = new HashMap<>();
+    private static final Map<Integer, Constructor<?>> constructorsCache = new HashMap<>();
+    private static final Map<Integer, Method> methodsCache = new HashMap<>();
+    private static final Map<Integer, Field> fieldsCache = new HashMap<>();
+
+    private static <T> T cache(Map<Integer, T> cache, Object base, Object[] lookup, Supplier<T> supplier) {
+        return cache.computeIfAbsent(Objects.hash(base, Arrays.hashCode(lookup)), i -> supplier.get());
+    }
+
+    static Class<?> clazz(String... classes) {
+        return cache(clazzCache, null, classes, () -> {
+            for (String clazz : classes) {
+                try {
+                    return Thread.currentThread().getContextClassLoader().loadClass(clazz);
+                } catch (ClassNotFoundException ignored) {
+                }
+            }
+            throw new RuntimeException("Class not found from " + Arrays.toString(classes));
+        });
+    }
+
+    static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
         try {
-            Constructor<?> con = clazz.getConstructor(params);
+            Constructor<?> con = cache(constructorsCache, clazz, params, () -> {
+                try {
+                    return clazz.getConstructor(params);
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException("Constructor not found for class " + clazz.getName() + " with args " + Arrays.toString(params));
+                }
+            });
             return con.newInstance(args);
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
+        } catch (InvocationTargetException | InstantiationException |
                  IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
-        for (String method : methods) {
-            try {
-                return clazz.getMethod(method, args);
-            } catch (NoSuchMethodException ignored) {
+    static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
+        return cache(methodsCache, clazz, methods, () -> {
+            for (String method : methods) {
+                try {
+                    return clazz.getMethod(method, args);
+                } catch (NoSuchMethodException ignored) {
+                }
             }
-        }
-
-        throw new RuntimeException("method not found from " + Arrays.toString(methods) + " for class " + clazz.getName() + " with args " + Arrays.toString(args));
+            throw new RuntimeException("Method not found from " + Arrays.toString(methods) + " for class " + clazz.getName() + " with args " + Arrays.toString(args));
+        });
     }
 
-    public static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, String... methods) {
+    static Object invokeMethodTypeless(Class<?> clazz, Object instance, Object[] args, String... methods) {
         if (args == null) args = new Object[0];
 
         Class<?>[] search = new Class<?>[args.length];
         for (int i = 0; i < args.length; i++) search[i] = args[i].getClass();
 
-        return invokeMethod(clazz, instance, args, search, methods);
+        return invokeMethodTyped(clazz, instance, args, search, methods);
     }
 
-    public static Object invokeMethod(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
+    static Object invokeMethodTyped(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
         if (args == null) args = new Object[0];
         if (search == null) search = new Class<?>[0];
-
         Method method = method(clazz, search, methods);
         try {
             return method.invoke(instance, args);
@@ -52,37 +80,34 @@ public class Reflection {
         }
     }
 
-    public static Class<?> clazz(String... classes) {
-        for (String clazz : classes) {
-            try {
-                return Thread.currentThread().getContextClassLoader().loadClass(clazz);
-            } catch (ClassNotFoundException ignored) {
+    static Field field(Class<?> clazz, String... fields) {
+        return cache(fieldsCache, clazz, fields, () -> {
+            for (String field : fields) {
+                try {
+                    return clazz.getField(field);
+                } catch (NoSuchFieldException ignored) {
+                }
             }
-        }
-        throw new RuntimeException("Class not found from " + Arrays.toString(classes));
+            throw new RuntimeException("Field not found from " + Arrays.toString(fields) + " for class " + clazz.getName());
+        });
     }
 
-    public static Object field(Class<?> clazz, Object instance, String... fields) {
-        for (String field : fields) {
-            try {
-                Field f = clazz.getField(field);
-                return f.get(instance);
-            } catch (NoSuchFieldException | IllegalAccessException ignored) {
-            }
+    static Object getField(Class<?> clazz, Object instance, String... fields) {
+        Field f = field(clazz, fields);
+        try {
+            return f.get(instance);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
-    public static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
-        for (String field : fields) {
-            try {
-                Field f = clazz.getField(field);
-                f.set(instance, value);
-                return;
-            } catch (NoSuchFieldException | IllegalAccessException ignored) {
-            }
+    static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
+        Field f = field(clazz, fields);
+        try {
+            f.set(instance, value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-        throw new RuntimeException("Field not found from " + Arrays.toString(fields));
     }
 
     private static MinecraftVersion version = null;
@@ -113,21 +138,15 @@ public class Reflection {
         }
 
         private final Map<String, Integer> cache = new HashMap<>();
-        
         public int compare(String other) {
-            if (cache.containsKey(other)) return cache.get(other);
-            int cmp = compareInternal(new MinecraftVersion(other));
-            cache.put(other, cmp);
-            return cmp;
+            return cache.computeIfAbsent(other, i -> {
+                MinecraftVersion v = new MinecraftVersion(other);
+                if (this.major != v.major) return Integer.compare(this.major, v.major);
+                if (this.minor != v.minor) return Integer.compare(this.minor, v.minor);
+                return Integer.compare(this.patch, v.patch);
+            });
         }
 
-        private int compareInternal(MinecraftVersion other) {
-            if (this.major != other.major) return Integer.compare(this.major, other.major);
-            if (this.minor != other.minor) return Integer.compare(this.minor, other.minor);
-            return Integer.compare(this.patch, other.patch);
-        }
-
-        
         public boolean higher(String other) {
             return this.compare(other) > 0;
         }
