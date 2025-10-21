@@ -203,12 +203,16 @@ function transform(input) {
       } else if (v[0].type == "class" && v.length == 1) {
         s = v[0].value;
 
-      // construct class
+      // construct class (typed)
       } else if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "typed")) {
-        s = "Reflection.construct(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.val) + "}, " + v.slice(1).map(w => w.cls).join(", ") + ")";
+        s = "Reflection.constructTyped(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.val).join(", ") + "}, " + v.slice(1).map(w => w.cls).join(", ") + ")";
+
+      // construct class (typeless)
+      } else if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "token" || w.type == "class")) {
+        s = "Reflection.constructTypeless(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.value).join(", ") + "})";
 
       } else {
-        error("Uknown type of expression: " + v.map(w => w.type).join(", "));
+        error("Uknown type of expression: [" + v.map(w => w.type).join(" ") + "]");
       }
       
       return { "type": "token", "value": s };
