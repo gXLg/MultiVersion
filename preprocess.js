@@ -131,13 +131,13 @@ function transform(input) {
       let ltype = null;
       for (const { "value": v } of tree.value) {
         if (v.startsWith("method_")) ltype = "method";
-        else if (v.includes(".class_")) ltype = "class";
+        else if (v.includes(".class_") || v.match(/^([a-z_][a-zA-Z0-9_]*[.])+[A-Z_][a-zA-Z0-9_]*$/)) ltype = "class";
         else if (v.startsWith("field_")) ltype = "field";
         else if (v.startsWith("comp_")) ltype = "component";
         else continue;
         break;
       }
-      if (ltype == null) error("List could not be initialized: " + tree.value.map(v => v.value).join(","));
+      if (ltype == null) error("List could not be initialized, unknown type: " + tree.value.map(v => v.value).join(", "));
       if (ltype == "class") return { "type": "class", "value": "Reflection.clazz(" + tree.value.map(v => '"' + ((v.value[0] == "." ? "net.minecraft" : "") + v.value) + '"').join(", ") + ")" };
       return { "type": ltype + "list", "values": tree.value.map(v => v.value) };
     } else if (tree.type == "token") {
