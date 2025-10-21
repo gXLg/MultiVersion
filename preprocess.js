@@ -64,7 +64,7 @@ function transform(input) {
     if (raw) {
       while (i < input.length && input[i] !== "[") i++;
     } else {
-      while (i < input.length && !/[\s:/\[\]/]/.test(input[i])) i++;
+      while (i < input.length && (!/[\s:/\[\]]/.test(input[i]) || input.slice(i, i + 2) == "::")) i++;
     }
     return { type: raw ? "string" : "token", value: input.slice(start, i) };
   }
