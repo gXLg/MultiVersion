@@ -130,7 +130,7 @@ function transform(input) {
       let ltype = null;
       for (const { "value": v } of tree.value) {
         if (v.startsWith("method_")) ltype = "method";
-        else if (v.includes(".class_") || v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/)) ltype = "class";
+        else if (v.includes(".class_") || v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_$][a-zA-Z0-9_$]*$/)) ltype = "class";
         else if (v.startsWith("field_")) ltype = "field";
         else if (v.startsWith("comp_")) ltype = "component";
         else continue;
@@ -146,8 +146,11 @@ function transform(input) {
         const varName = "$args[" + (varArgsCounter++) + "]";
         return { "type": "typed", "cls": varName + ".getClass()", "val": varName };
       }
-      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/))) {
+      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && v.match(/^[A-Z_$][a-zA-Z0-9_$]$/))) {
         return { "type": "class", "value": v + ".class" };
+      }
+      if (v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/) || v[0] == ".") {
+        return { "type": "class", "value": "Reflection.clazz(\"" + (v[0] == "." ? "net.minecraft" : "") + v + "\")" };
       }
       if (v.endsWith("§l")) return { "type": "class", "values": v.slice(0, -2) + ".class" };
       if (v.endsWith("§f")) return { "type": "fieldlist", "values": [v.slice(0, -2)] };
