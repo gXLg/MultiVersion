@@ -44,7 +44,7 @@ function version(line) {
 function reflection(line) {
   let final = line;
   while (true) {
-      const found = final.match(/Reflection.wrap[(]("(?:[^"\\]|\\.)*")(?:,[ ]*[a-zA-Z.$_]+)*[)]/g);
+      const found = final.match(/Reflection.wrapi?[(]("(?:[^"\\]|\\.)*")(?:,[ ]*[a-zA-Z.$_]+)*[)]/g);
       if (!found) break;
       const res = transform(eval(found[0].match(/"(?:[^"\\]|\\.)*"/)[0]));
       final = final.replace(found[0], "(" + res + ")");
@@ -131,7 +131,7 @@ function transform(input) {
       let ltype = null;
       for (const { "value": v } of tree.value) {
         if (v.startsWith("method_")) ltype = "method";
-        else if (v.includes(".class_") || v.match(/^([a-z_][a-zA-Z0-9_]*[.])+[A-Z_][a-zA-Z0-9_]*$/)) ltype = "class";
+        else if (v.includes(".class_") || v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/)) ltype = "class";
         else if (v.startsWith("field_")) ltype = "field";
         else if (v.startsWith("comp_")) ltype = "component";
         else continue;
@@ -147,9 +147,14 @@ function transform(input) {
         const varName = "$args[" + (varArgsCounter++) + "]";
         return { "type": "typed", "cls": varName + ".getClass()", "val": varName };
       }
-      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && /^[A-Z][a-zA-Z0-9_$]+$/.test(v))) {
+      if (["byte", "short", "int", "long", "float", "double", "char", "boolean"].includes(v) || (v.toUpperCase() != v && v.match(/^([a-z_][a-zA-Z0-9_]*[.])*[A-Z_][a-zA-Z0-9_]*$/))) {
         return { "type": "class", "value": v + ".class" };
       }
+      if (v.endsWith("§l")) return { "type": "class", "value": "Reflection.clazz(\"" + ((v[0] == "." ? "net.minecraft" : "") + v) + "\")" };
+      if (v.endsWith("§f")) return { "type": "fieldlist", "values": [v] };
+      if (v.endsWith("§m")) return { "type": "methodlist", "values": [v] };
+      if (v.endsWith("§c")) return { "type": "complist", "values": [v] };
+
       return { "type": "token", "value": v };
 
     } else if (tree.type == "pair") {
@@ -211,7 +216,7 @@ let func = false;
 for (const line of final.split("\n")) {
   let l = line;
   if (l.includes("Reflection.version(")) l = version(l);
-  if (l.includes("Reflection.wrap(")) l = reflection(l);
+  if (l.includes("Reflection.wrap(") || l.includes("Reflection.wrapi(")) l = reflection(l);
   ref.push(l);
   if (l.includes("Function<Object[], Object>")) func = true;
 }
