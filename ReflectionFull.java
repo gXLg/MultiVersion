@@ -20,7 +20,7 @@ public class Reflection {
         return cache.computeIfAbsent(Objects.hash(base, Arrays.hashCode(lookup)), i -> supplier.get());
     }
 
-    static Class<?> clazz(String... classes) {
+    public static Class<?> clazz(String... classes) {
         return cache(clazzCache, null, classes, () -> {
             for (String clazz : classes) {
                 try {
@@ -32,7 +32,7 @@ public class Reflection {
         });
     }
 
-    static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
+    public static Object construct(Class<?> clazz, Object[] args, Class<?>... params) {
         try {
             Constructor<?> con = cache(constructorsCache, clazz, params, () -> {
                 try {
@@ -48,7 +48,7 @@ public class Reflection {
         }
     }
 
-    static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
+    public static Method method(Class<?> clazz, Class<?>[] args, String... methods) {
         return cache(methodsCache, clazz, methods, () -> {
             for (String method : methods) {
                 try {
@@ -60,7 +60,7 @@ public class Reflection {
         });
     }
 
-    static Object invokeMethodTypeless(Class<?> clazz, Object instance, Object[] args, String... methods) {
+    public static Object invokeMethodTypeless(Class<?> clazz, Object instance, Object[] args, String... methods) {
         if (args == null) args = new Object[0];
 
         Class<?>[] search = new Class<?>[args.length];
@@ -69,7 +69,7 @@ public class Reflection {
         return invokeMethodTyped(clazz, instance, args, search, methods);
     }
 
-    static Object invokeMethodTyped(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
+    public static Object invokeMethodTyped(Class<?> clazz, Object instance, Object[] args, Class<?>[] search, String... methods) {
         if (args == null) args = new Object[0];
         if (search == null) search = new Class<?>[0];
         Method method = method(clazz, search, methods);
@@ -80,7 +80,7 @@ public class Reflection {
         }
     }
 
-    static Field field(Class<?> clazz, String... fields) {
+    public static Field field(Class<?> clazz, String... fields) {
         return cache(fieldsCache, clazz, fields, () -> {
             for (String field : fields) {
                 try {
@@ -92,7 +92,7 @@ public class Reflection {
         });
     }
 
-    static Object getField(Class<?> clazz, Object instance, String... fields) {
+    public static Object getField(Class<?> clazz, Object instance, String... fields) {
         Field f = field(clazz, fields);
         try {
             return f.get(instance);
@@ -101,7 +101,7 @@ public class Reflection {
         }
     }
 
-    static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
+    public static void setField(Class<?> clazz, Object instance, Object value, String... fields) {
         Field f = field(clazz, fields);
         try {
             f.set(instance, value);
