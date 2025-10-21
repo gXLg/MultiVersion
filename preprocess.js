@@ -163,13 +163,17 @@ function transform(input) {
       const v = tree.value.map(init);
       let s = "";
 
-      // method
+      // method (typed)
       if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "typed")) {
-        s = "Reflection.invokeMethod(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.invokeMethodTyped(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.val).join(", ") + "}, new Class[]{" + v.slice(2).map(w => w.cls).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
 
-      // field
+      // method (typeless)
+      if (v[0].type == "typed" && v[1].type == "methodlist" && v.slice(2).every(w => w.type == "token" || w.type == "class")) {
+        s = "Reflection.invokeMethodTypeless(" + v[0].cls + ", " + v[0].val + ", new Object[]{" + v.slice(2).map(w => w.value).join(", ") + "}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        
+      // get field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
-        s = "Reflection.field(" + v[0].cls + ", " + v[0].val + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.getField(" + v[0].cls + ", " + v[0].val + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
         
       // set field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && (v[2].type == "token" || v[2].type == "class")) {
@@ -177,7 +181,7 @@ function transform(input) {
 
       // component
       } else if (v[0].type == "typed" && v[1].type == "componentlist" && v.length == 2) {
-        s = "Reflection.invokeMethod(" + v[0].cls + ", " + v[0].val + ", new Object[]{}, new Class[]{}, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        s = "Reflection.invokeMethodTyped(" + v[0].cls + ", " + v[0].val + ", new Object[0], new Class[0], " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
 
       // class
       } else if (v[0].type == "class" && v.length == 1) {
