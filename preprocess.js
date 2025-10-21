@@ -191,6 +191,10 @@ function transform(input) {
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && v.length == 2) {
         s = "Reflection.getField(" + v[0].cls + ", " + v[0].val + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
         
+      // get static field
+      } else if ((v[0].type == "token" || v[0].type == "class") && v[1].type == "fieldlist" && v.length == 2) {
+        s = "Reflection.getField(" + v[0].value + ", null, " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
+        
       // set field
       } else if (v[0].type == "typed" && v[1].type == "fieldlist" && (v[2].type == "token" || v[2].type == "class")) {
         s = "Reflection.setField(" + v[0].cls + ", " + v[0].val + ", " + v[2].value + ", " + v[1].values.map(w => '"' + w + '"').join(", ") + ")";
