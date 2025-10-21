@@ -215,6 +215,10 @@ function transform(input) {
       } else if ((v[0].type == "token" || v[0].type == "class") && v.slice(1).every(w => w.type == "token" || w.type == "class")) {
         s = "Reflection.constructTypeless(" + v[0].value + ", new Object[]{" + v.slice(1).map(w => w.value).join(", ") + "})";
 
+      // construct class (no args)
+      } else if ((v[0].type == "token" || v[0].type == "class") && v[1].type == "token" && v[1].value == "<>" && v.length == 2) {
+        s = "Reflection.constructTyped(" + v[0].value + ", new Object[0], new Class[0])";
+
       } else {
         error("Uknown type of expression: [" + v.map(w => w.type).join(" ") + "]");
       }
