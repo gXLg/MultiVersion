@@ -131,7 +131,7 @@ public class Reflection {
             version = new MinecraftVersion((String) invokeMethodTypeless(clazzGameVersion, gameVersion, null, "method_48019", "getName"));
         } catch (Exception ignored) {
             Class<?> clazzGameVersion = clazz("net.minecraft.class_6489", "net.minecraft.GameVersion");
-            version = new MinecraftVersion((String) invokeMethodTypeless(clazzGameVersion, gameVersion, null, "comp_4025", "name"));
+            version = new MinecraftVersion((String) invokeMethodTypeless(clazzGameVersion, gameVersion, null, "method_48019", "getName", "comp_4025", "name"));
         }
         return version;
     }
