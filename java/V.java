@@ -58,15 +58,15 @@ public class V {
         }
     }
 
-    public boolean higher(String other) {
+    public static boolean higher(String other) {
         return getVersion().higher(other);
     }
 
-    public boolean equal(String other) {
+    public static boolean equal(String other) {
         return getVersion().equal(other);
     }
 
-    public boolean lower(String other) {
+    public static boolean lower(String other) {
         return getVersion().lower(other);
     }
 }
