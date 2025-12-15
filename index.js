@@ -6,6 +6,7 @@ console.log("Welcome to MultiVersion!");
 /* ------------------------------------------------------------------------------------ */
 console.log("Importing Reflection files...");
 const projectDir = "src/" + root + "/multiversion";
+if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir);
 fs.writeFileSync(projectDir + "/R.java", "package " + package + ".multiversion;\n\n" + fs.readFileSync("./MultiVersion/java/R.java", "utf-8"));
 if (!fs.existsSync(projectDir + "/C.java")) fs.writeFileSync(projectDir + "/C.java", "package " + package + ".multiversion;\n\n" + fs.readFileSync("./MultiVersion/java/C.java", "utf-8"));
 fs.writeFileSync(projectDir + "/V.java", "package " + package + ".multiversion;\n\n" + fs.readFileSync("./MultiVersion/java/V.java", "utf-8"));
