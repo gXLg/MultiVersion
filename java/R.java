@@ -76,7 +76,7 @@ public class R {
             Class<?>[] params = types(types);
             Constructor<?> constr = cache(constructorsCache, clz, params, () -> {
                 try {
-                    return clz.getConstructor();
+                    return clz.getConstructor(params);
                 } catch (NoSuchMethodException e) {
                     throw new RuntimeException("Constructor not found for class " + clz.getName() + " with args " + Arrays.toString(params));
                 }
