@@ -1,3 +1,3 @@
 public class C {
-    // widely used class, method and field names
+    // widely used class names
 }

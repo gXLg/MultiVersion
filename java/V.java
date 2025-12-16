@@ -3,6 +3,7 @@ import net.minecraft.SharedConstants;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class V {
     private static MinecraftVersion version = null;
 
