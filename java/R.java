@@ -214,7 +214,7 @@ public class R {
             this.constr = constr;
         }
 
-        public RInstance constr(Object... args) {
+        public RInstance newInst(Object... args) {
             try {
                 return new RInstance(clz, constr.newInstance(args));
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
