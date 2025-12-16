@@ -68,7 +68,7 @@ public class R {
             try {
                 return new RInstance(clz, clz.cast(inst));
             } catch (ClassCastException e) {
-                throw new RuntimeException("Object is not of type " + clz.getName());
+                throw new RuntimeException("Object is not of type " + clz.getName() + ", instead: " + inst.getClass().getName());
             }
         }
 
