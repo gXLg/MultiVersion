@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { root, package } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
 const finalPackage = package + ".multiversion.gen";
-const file = fs.readFileSync(root + "multiversion/multi-version.mapping", "utf-8").trim();
+const file = fs.readFileSync("src/" + root + "multiversion/multi-version.mapping", "utf-8").trim();
 
 if (file === "") {
   console.log("Nothing to generate!");
