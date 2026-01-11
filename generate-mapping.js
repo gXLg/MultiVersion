@@ -115,7 +115,7 @@ while (classes.length) {
 
 const genRoot = "src/" + root + "/multiversion/gen";
 if (fs.existsSync(genRoot)) {
-  fs.rmdirSync(genRoot, { "recursive": true });
+  fs.rmSync(genRoot, { "recursive": true });
 }
 for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
