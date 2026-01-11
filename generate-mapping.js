@@ -13,7 +13,7 @@ const classes = file.split(/\n\n+/).map(p => {
   return { clz, methods };
 });
 
-// fileName: classGetter, instanceMethods, staticMethods, instanceFields, staticFields
+// fileName: classGetter, instanceMethods, staticMethods, instanceFields
 const processedClasses = {};
 
 function parseType(type) {
@@ -97,8 +97,6 @@ while (classes.length) {
       finalNames.push(name);
     }
 
-
-
     const returnType = method.split(" ")[isStatic ? 1 : 0];
     const { finalType, castLeft, castRight, returnStatement } = parseType(returnType);
 
@@ -112,7 +110,7 @@ while (classes.length) {
     );
   }
 
-  processedClasses[fileName] = { "classGetter": clz, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, staticFields };
+  processedClasses[fileName] = { "classGetter": clz, instanceMethods, staticMethods, instanceFields, instanceFieldsInits };
 }
 
 fs.rmdirSync("src/" + root + "/multiversion/gen", { "recursive": true });
@@ -120,7 +118,7 @@ for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync("src/" + root + "/multiversion/gen/" + folder, { "recursive": true });
   const className = fileName.split("/").slice(-1)[0];
-  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, staticFields } = processedClasses[fileName];
+  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits } = processedClasses[fileName];
   fs.writeFileSync("src/" + root + "/multiversion/gen/" + fileName + ".java",
 `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
 
@@ -143,8 +141,6 @@ ${instanceFieldsInits.join("\n")}
 ${instanceMethods.join("\n\n")}
 
     public static final R.RClass clazz = R.clz("${classGetter}");
-
-${staticFields.join("\n\n")}
 
     public static ${className} inst(Object instance) {
         return new ${className}(instance);
