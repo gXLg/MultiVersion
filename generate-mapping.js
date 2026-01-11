@@ -113,13 +113,16 @@ while (classes.length) {
   processedClasses[fileName] = { "classGetter": clz, instanceMethods, staticMethods, instanceFields, instanceFieldsInits };
 }
 
-fs.rmdirSync("src/" + root + "/multiversion/gen", { "recursive": true });
+const genRoot = "src/" + root + "/multiversion/gen";
+if (fs.existsSync(genRoot)) {
+  fs.rmdirSync(genRoot, { "recursive": true });
+}
 for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
-  fs.mkdirSync("src/" + root + "/multiversion/gen/" + folder, { "recursive": true });
+  fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
   const className = fileName.split("/").slice(-1)[0];
   const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits } = processedClasses[fileName];
-  fs.writeFileSync("src/" + root + "/multiversion/gen/" + fileName + ".java",
+  fs.writeFileSync(genRoot + "/" + fileName + ".java",
 `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
 
 import ${package}.multiversion.R;
