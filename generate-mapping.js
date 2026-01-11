@@ -24,7 +24,7 @@ function parseType(type) {
   let returnStatement;
   if (type.includes("/")) {
     classes.push({ "clz": type, "methods": [] });
-    finalType = finalPackage + "." + type.split("/").slice(-1)[0];
+    finalType = finalPackage + "." + type.split("/").slice(-1)[0] + "Wrapper";
     castLeft = finalType + ".inst(";
     castRight = ")";
     classGetter = "clazz";
@@ -42,7 +42,7 @@ while (classes.length) {
   const { clz, methods } = classes.shift();
 
   const classNames = clz.split("/");
-  const fileName = classNames.slice(-1)[0].replaceAll(".", "/");
+  const fileName = classNames.slice(-1)[0].replaceAll(".", "/") + "Wrapper";
   if (fileName in processedClasses) continue;
 
   const instanceMethods = [];
