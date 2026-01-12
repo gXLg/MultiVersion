@@ -109,7 +109,7 @@ while (classes.length) {
     if (method.startsWith("<init>")) {
       // then it's a constructor!
       constructors.push(
-`    <init>(${finalArgs.join(", ")}) {
+`    public <init>(${finalArgs.join(", ")}) {
         this(clazz.constr(${finalTypes.join(", ")}).newInst(${finalNames.join(", ")}).self());
     }`
       );
