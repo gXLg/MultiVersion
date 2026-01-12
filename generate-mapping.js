@@ -41,7 +41,14 @@ function parseType(type) {
   let castRight;
   let classGetter;
   let returnStatement;
-  if (type.includes("/")) {
+  if (type.includes("/") || type.startsWith("!")) {
+    if (type.endsWith("]")) {
+      console.log("Can't use Arrays on Wrapper classes yet!");
+      process.exit(1);
+    }
+    if (type.startsWith("!")) {
+      type = type.slice(1);
+    }
     classes.push({ "parent": type, "children": [] });
     finalType = finalPackage + "." + type.split("/").slice(-1)[0] + "Wrapper";
     castLeft = finalType + ".inst(";
