@@ -8,12 +8,31 @@ if (file === "") {
   process.exit(0);
 }
 
-const classes = file.split(/\n\n+/).map(p => {
-  const [clz, ...methods] = p.split("\n").map(l => l.trim());
-  return { clz, methods };
-});
+function whitespace(line) {
+  const tline = line.trimStart();
+  return [line.length - tline.length, tline];
+}
 
-// fileName: classGetter, instanceMethods, staticMethods, instanceFields, extending, constructors
+function processPart(children, lines, start=0) {
+  while (lines.length) {
+    const [ws, parent] = whitespace(lines[0]);
+    if (ws < start) {
+      return;
+    } else if (ws == start) {
+      children.push({ parent, "children": [] });
+      lines.shift();
+    } else if (ws > start) {
+      const parent = children.slice(-1)[0];
+      processPart(parent.children, lines, ws);
+    }
+  }
+}
+
+const lines = file.split("\n").filter(l => !l.startsWith("#") && l.length);
+const classes = [];
+processPart(classes, lines);
+
+// fileName: content
 const processedClasses = {};
 
 function parseType(type) {
@@ -23,7 +42,7 @@ function parseType(type) {
   let classGetter;
   let returnStatement;
   if (type.includes("/")) {
-    classes.push({ "clz": type, "methods": [] });
+    classes.push({ "parent": type, "children": [] });
     finalType = finalPackage + "." + type.split("/").slice(-1)[0] + "Wrapper";
     castLeft = finalType + ".inst(";
     castRight = ")";
@@ -39,10 +58,10 @@ function parseType(type) {
   return { finalType, castLeft, castRight, classGetter, returnStatement };
 }
 
-while (classes.length) {
-  const { clz, methods } = classes.shift();
+function processClass(clazz) {
+  const { parent, children } = clazz;
 
-  const [currentClass, extendingClass] = clz.includes(" extends ") ? clz.split(" extends ") : [clz, null];
+  const [currentClass, extendingClass] = parent.includes(" extends ") ? parent.split(" extends ") : [parent, null];
   let extending = null;
   if (extendingClass != null) {
     const { finalType } = parseType(extendingClass);
@@ -51,7 +70,9 @@ while (classes.length) {
 
   const classNames = currentClass.split("/");
   const fileName = classNames.slice(-1)[0].replaceAll(".", "/") + "Wrapper";
-  if (fileName in processedClasses) continue;
+  if (fileName in processedClasses) {
+    return;
+  }
 
   const instanceMethods = [];
   const staticMethods = [];
@@ -59,15 +80,21 @@ while (classes.length) {
   const instanceFieldsInits = [];
   const constructors = [];
 
-  for (const method of methods) {
-    const isStatic = method.startsWith("static ");
+  for (const child of children) {
+    if (child.children.length) {
+      processClass(child);
+      continue;
+    }
+    const line = child.parent;
 
-    if (!method.endsWith(")")) {
+    const isStatic = line.startsWith("static ");
+
+    if (!line.endsWith(")")) {
       // then it's a field!
-      const names = method.split(" ").slice(-1)[0];
+      const names = line.split(" ").slice(-1)[0];
       const pubName = names.split("/").slice(-1)[0];
 
-      const returnType = method.split(" ")[isStatic ? 1 : 0];
+      const returnType = line.split(" ")[isStatic ? 1 : 0];
       const { finalType, castLeft, castRight } = parseType(returnType);
 
       if (isStatic) {
@@ -94,7 +121,7 @@ while (classes.length) {
       continue;
     }
 
-    const rawArgs = method.split("(")[1].split(")")[0];
+    const rawArgs = line.split("(")[1].split(")")[0];
     const args = rawArgs === "" ? [] : rawArgs.split(", ").map(a => a.split(" "));
     const finalArgs = [];
     const finalTypes = [];
@@ -106,7 +133,7 @@ while (classes.length) {
       finalNames.push(name + (classGetter == "clazz" ? ".unwrap()" : ""));
     }
 
-    if (method.startsWith("<init>")) {
+    if (line.startsWith("<init>")) {
       // then it's a constructor!
       constructors.push(
 `    public <init>(${finalArgs.join(", ")}) {
@@ -117,10 +144,10 @@ while (classes.length) {
       continue;
     }
 
-    const returnType = method.split(" ")[isStatic ? 1 : 0];
+    const returnType = line.split(" ")[isStatic ? 1 : 0];
     const { finalType, castLeft, castRight, returnStatement } = parseType(returnType);
 
-    const methodNames = method.split("(")[0].split(" ").slice(-1)[0];
+    const methodNames = line.split("(")[0].split(" ").slice(-1)[0];
     const fileMethodName = methodNames.split("/").slice(-1)[0];
 
     (isStatic ? staticMethods : instanceMethods).push(
@@ -130,25 +157,13 @@ while (classes.length) {
     );
   }
 
-  processedClasses[fileName] = { "classGetter": currentClass, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending, constructors };
-}
-
-const genRoot = "src/" + root + "/multiversion/gen";
-if (fs.existsSync(genRoot)) {
-  fs.rmSync(genRoot, { "recursive": true });
-}
-for (const fileName in processedClasses) {
-  const folder = fileName.split("/").slice(0, -1).join("/");
-  fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
   const className = fileName.split("/").slice(-1)[0];
-  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending, constructors } = processedClasses[fileName];
-  fs.writeFileSync(genRoot + "/" + fileName + ".java",
-`package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
+  processedClasses[fileName] = `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
 
 import ${package}.multiversion.R;
 
 public class ${className} extends ${extending ?? "R.RWrapper"} {
-    public static final R.RClass clazz = R.clz("${classGetter}");
+    public static final R.RClass clazz = R.clz("${currentClass}");
 
 ${instanceFields.join("\n\n")}
 
@@ -167,8 +182,23 @@ ${instanceMethods.join("\n\n")}
 
 ${staticMethods.join("\n\n")}
 }
-`.replace(/\n\n+/g, "\n\n")
-  );
+`.replace(/\n\n+/g, "\n\n").replace(/\n*([ ]*\})/g, "\n$1");
+
+}
+
+while (classes.length) {
+  processClass(classes.shift());
+}
+
+const genRoot = "src/" + root + "/multiversion/gen";
+if (fs.existsSync(genRoot)) {
+  fs.rmSync(genRoot, { "recursive": true });
+}
+for (const fileName in processedClasses) {
+  const folder = fileName.split("/").slice(0, -1).join("/");
+  fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
+  const className = fileName.split("/").slice(-1)[0];
+  fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fileName]);
   console.log("Generated", className);
 }
 
