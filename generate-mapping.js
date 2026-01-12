@@ -58,6 +58,10 @@ function parseType(type) {
   return { finalType, castLeft, castRight, classGetter, returnStatement };
 }
 
+function isClass(line) {
+  return line.includes(" extends ") || (!line.endsWith(")") && line.split(" ").length === 1);
+}
+
 function processClass(clazz) {
   const { parent, children } = clazz;
 
@@ -81,11 +85,12 @@ function processClass(clazz) {
   const constructors = [];
 
   for (const child of children) {
-    if (child.children.length) {
+    const line = child.parent;
+
+    if (isClass(line)) {
       processClass(child);
       continue;
     }
-    const line = child.parent;
 
     const isStatic = line.startsWith("static ");
 
