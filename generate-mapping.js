@@ -28,6 +28,7 @@ function parseType(type) {
     castLeft = finalType + ".inst(";
     castRight = ")";
     classGetter = "clazz";
+    returnStatement = "return ";
   } else {
     finalType = type;
     castLeft = (type === "Object" || type === "void") ? "" : "(" + type + ") ";
@@ -112,7 +113,7 @@ while (classes.length) {
 
     (isStatic ? staticMethods : instanceMethods).push(
 `    public ${isStatic ? "static " : ""}${finalType} ${fileMethodName}(${finalArgs.join(", ")}) {
-         ${returnStatement}${castLeft}${isStatic ? "clazz" : "instance"}.mthd("${methodNames}"${finalTypes.map(t => ", " + t)}).invk(${finalNames.join(", ")})${castRight};
+         ${returnStatement}${castLeft}${isStatic ? "clazz" : "instance"}.mthd("${methodNames}"${finalTypes.map(t => ", " + t).join("")}).invk(${finalNames.join(", ")})${castRight};
     }`
     );
   }
