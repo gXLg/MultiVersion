@@ -134,7 +134,7 @@ for (const fileName in processedClasses) {
 
 import ${package}.multiversion.R;
 
-public class ${className} extends ${extending ?? "RWrapper"} {
+public class ${className} extends ${extending ?? "R.RWrapper"} {
 ${instanceFields.join("\n\n")}
 
     private ${className}(Object instance) {
