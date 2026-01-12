@@ -28,7 +28,7 @@ function processPart(children, lines, start=0) {
   }
 }
 
-const lines = file.split("\n").filter(l => !l.startsWith("#") && l.length);
+const lines = file.split("\n").filter(l => !l.startsWith("#") && l.trim().length);
 const classes = [];
 processPart(classes, lines);
 
