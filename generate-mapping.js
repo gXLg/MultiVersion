@@ -167,7 +167,7 @@ ${instanceMethods.join("\n\n")}
 
 ${staticMethods.join("\n\n")}
 }
-`.replace(/\n\n+/g, "\n\n");
+`.replace(/\n\n+/g, "\n\n")
   );
   console.log("Generated", className);
 }
