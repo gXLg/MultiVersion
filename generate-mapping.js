@@ -30,6 +30,7 @@ function processPart(children, lines, start=0) {
 
 const lines = file.split("\n").filter(l => !l.startsWith("#") && l.trim().length);
 const classes = [];
+const additionalClasses = [];
 processPart(classes, lines);
 
 // fileName: content
@@ -49,7 +50,7 @@ function parseType(type) {
     if (type.startsWith("!")) {
       type = type.slice(1);
     }
-    classes.push({ "parent": type, "children": [] });
+    additionalClasses.push({ "parent": type, "children": [] });
     finalType = finalPackage + "." + type.split("/").slice(-1)[0] + "Wrapper";
     castLeft = finalType + ".inst(";
     castRight = ")";
@@ -93,7 +94,6 @@ function processClass(clazz) {
 
   for (const child of children) {
     const line = child.parent;
-
     if (isClass(line)) {
       processClass(child);
       continue;
@@ -200,6 +200,9 @@ ${staticMethods.join("\n\n")}
 
 while (classes.length) {
   processClass(classes.shift());
+}
+while (additionalClasses.length) {
+  processClass(additionalClasses.shift());
 }
 
 const genRoot = "src/" + root + "/multiversion/gen";
