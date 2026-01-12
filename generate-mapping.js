@@ -113,7 +113,7 @@ while (classes.length) {
     (isStatic ? staticMethods : instanceMethods).push(
 `    public ${isStatic ? "static " : ""}${finalType} ${fileMethodName}(${finalArgs.join(", ")}) {
          ${returnStatement}${castLeft}${isStatic ? "clazz" : "instance"}.mthd("${methodNames}", ${finalTypes.join(", ")}).invk(${finalNames.join(", ")})${castRight};
-     }`
+    }`
     );
   }
 
