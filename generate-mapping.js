@@ -110,7 +110,7 @@ while (classes.length) {
       // then it's a constructor!
       constructors.push(
 `    <init>(${finalArgs.join(", ")}) {
-        this(clazz.constr(${finalTypes.join(", ")}).newInst(${finalNames.join(", ")}).self())
+        this(clazz.constr(${finalTypes.join(", ")}).newInst(${finalNames.join(", ")}).self());
     }`
       );
 
