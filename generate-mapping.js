@@ -13,7 +13,7 @@ const classes = file.split(/\n\n+/).map(p => {
   return { clz, methods };
 });
 
-// fileName: classGetter, instanceMethods, staticMethods, instanceFields, extending
+// fileName: classGetter, instanceMethods, staticMethods, instanceFields, extending, constructors
 const processedClasses = {};
 
 function parseType(type) {
@@ -57,6 +57,7 @@ while (classes.length) {
   const staticMethods = [];
   const instanceFields = [];
   const instanceFieldsInits = [];
+  const constructors = [];
 
   for (const method of methods) {
     const isStatic = method.startsWith("static ");
@@ -105,6 +106,17 @@ while (classes.length) {
       finalNames.push(name);
     }
 
+    if (method.startsWith("<init>")) {
+      // then it's a constructor!
+      constructors.push(
+`    <init>(${finalArgs.join(", ")}) {
+        this(clazz.constr(${finalTypes.join(", ")}).newInst(${finalNames.join(", ")}).self())
+    }`
+      );
+
+      continue;
+    }
+
     const returnType = method.split(" ")[isStatic ? 1 : 0];
     const { finalType, castLeft, castRight, returnStatement } = parseType(returnType);
 
@@ -118,7 +130,7 @@ while (classes.length) {
     );
   }
 
-  processedClasses[fileName] = { "classGetter": currentClass, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending };
+  processedClasses[fileName] = { "classGetter": currentClass, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending, constructors };
 }
 
 const genRoot = "src/" + root + "/multiversion/gen";
@@ -136,7 +148,11 @@ for (const fileName in processedClasses) {
 import ${package}.multiversion.R;
 
 public class ${className} extends ${extending ?? "R.RWrapper"} {
+    public static final R.RClass clazz = R.clz("${classGetter}");
+
 ${instanceFields.join("\n\n")}
+
+${constructors.map(c => c.replace("<init>", className)).join("\n\n")}
 
     protected ${className}(Object instance) {
         super(${extending ? "instance" : "clazz.inst(instance)"});
@@ -145,15 +161,13 @@ ${instanceFieldsInits.join("\n")}
 
 ${instanceMethods.join("\n\n")}
 
-    public static final R.RClass clazz = R.clz("${classGetter}");
-
     public static ${className} inst(Object instance) {
         return new ${className}(instance);
     }
 
 ${staticMethods.join("\n\n")}
 }
-`
+`.replace(/\n\n+/g, "\n\n");
   );
   console.log("Generated", className);
 }
