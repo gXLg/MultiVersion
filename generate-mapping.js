@@ -103,7 +103,7 @@ while (classes.length) {
       const { finalType, classGetter } = parseType(type);
       finalArgs.push(finalType + " " + name);
       finalTypes.push(finalType + "." + classGetter);
-      finalNames.push(name);
+      finalNames.push(name + (classGetter == "clazz" ? ".instance()" : ""));
     }
 
     if (method.startsWith("<init>")) {
