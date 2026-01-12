@@ -237,4 +237,16 @@ public class R {
             }
         }
     }
+
+    public static abstract class RWrapper {
+        protected final RInstance instance;
+
+        protected RWrapper(RInstance instance) {
+            this.instance = instance;
+        }
+
+        public Object instance() {
+            return instance.self();
+        }
+    }
 }

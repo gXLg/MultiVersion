@@ -13,7 +13,7 @@ const classes = file.split(/\n\n+/).map(p => {
   return { clz, methods };
 });
 
-// fileName: classGetter, instanceMethods, staticMethods, instanceFields
+// fileName: classGetter, instanceMethods, staticMethods, instanceFields, extending
 const processedClasses = {};
 
 function parseType(type) {
@@ -41,7 +41,14 @@ function parseType(type) {
 while (classes.length) {
   const { clz, methods } = classes.shift();
 
-  const classNames = clz.split("/");
+  const [currentClass, extendingClass] = clz.includes(" extends ") ? clz.split(" extends ") : [clz, null];
+  let extending = null;
+  if (extendingClass != null) {
+    const { finalType } = parseType(extendingClass);
+    extending = finalType;
+  }
+
+  const classNames = currentClass.split("/");
   const fileName = classNames.slice(-1)[0].replaceAll(".", "/") + "Wrapper";
   if (fileName in processedClasses) continue;
 
@@ -110,7 +117,7 @@ while (classes.length) {
     );
   }
 
-  processedClasses[fileName] = { "classGetter": clz, instanceMethods, staticMethods, instanceFields, instanceFieldsInits };
+  processedClasses[fileName] = { "classGetter": currentClass, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending };
 }
 
 const genRoot = "src/" + root + "/multiversion/gen";
@@ -121,24 +128,18 @@ for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
   const className = fileName.split("/").slice(-1)[0];
-  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits } = processedClasses[fileName];
+  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending } = processedClasses[fileName];
   fs.writeFileSync(genRoot + "/" + fileName + ".java",
 `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
 
 import ${package}.multiversion.R;
 
-public class ${className} {
-    private final R.RInstance instance;
-
+public class ${className} extends ${extending ?? "RWrapper"} {
 ${instanceFields.join("\n\n")}
 
     private ${className}(Object instance) {
-        this.instance = clazz.inst(instance);
+        super(${extending ? "instance" : "clazz.inst(instance)"});
 ${instanceFieldsInits.join("\n")}
-    }
-
-    public Object instance() {
-        return this.instance.self();
     }
 
 ${instanceMethods.join("\n\n")}
