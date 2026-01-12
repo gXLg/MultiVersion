@@ -245,8 +245,12 @@ public class R {
             this.instance = instance;
         }
 
-        public Object instance() {
+        public Object unwrap() {
             return instance.self();
+        }
+
+        public <T> T unwrap(Class<T> type) {
+            return type.cast(instance.self());
         }
     }
 }
