@@ -141,7 +141,7 @@ for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
   const className = fileName.split("/").slice(-1)[0];
-  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending } = processedClasses[fileName];
+  const { classGetter, instanceMethods, staticMethods, instanceFields, instanceFieldsInits, extending, constructors } = processedClasses[fileName];
   fs.writeFileSync(genRoot + "/" + fileName + ".java",
 `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
 
