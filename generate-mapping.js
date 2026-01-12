@@ -138,7 +138,7 @@ import ${package}.multiversion.R;
 public class ${className} extends ${extending ?? "R.RWrapper"} {
 ${instanceFields.join("\n\n")}
 
-    private ${className}(Object instance) {
+    protected ${className}(Object instance) {
         super(${extending ? "instance" : "clazz.inst(instance)"});
 ${instanceFieldsInits.join("\n")}
     }
