@@ -229,7 +229,7 @@ while (additionalClasses.length) {
   processClass(additionalClasses.shift());
 }
 
-const genRoot = "src/" + root + "/multiversion/gen";
+const genRoot = "src/" + root + "/dev/gxlg/multiversion/gen";
 if (fs.existsSync(genRoot)) {
   fs.rmSync(genRoot, { "recursive": true });
 }

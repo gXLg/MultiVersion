@@ -5,7 +5,7 @@ console.log("Welcome to MultiVersion!");
 
 /* ------------------------------------------------------------------------------------ */
 console.log("Importing Reflection files...");
-const projectDir = "src/" + root + "dev/gxlg/multiversion";
+const projectDir = "src/" + root + "/dev/gxlg/multiversion";
 if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir);
 fs.writeFileSync(projectDir + "/R.java", fs.readFileSync("./MultiVersion/java/R.java", "utf-8"));
 if (!fs.existsSync(projectDir + "/multi-version.mapping")) fs.writeFileSync(projectDir + "/multi-version.mapping", "# MultiVersion mapping, see LibrGetter for reference");
