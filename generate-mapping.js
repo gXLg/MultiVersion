@@ -2,11 +2,6 @@ const fs = require("fs");
 const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
 const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
 
-if (file === "") {
-  console.log("Nothing to generate!");
-  process.exit(0);
-}
-
 function whitespace(line) {
   const tline = line.trimStart();
   return [line.length - tline.length, tline];
@@ -31,6 +26,11 @@ const lines = file.split("\n").filter(l => !l.startsWith("#") && l.trim().length
 const classes = [];
 const additionalClasses = [];
 processPart(classes, lines);
+
+if (!classes.length) {
+  console.log("Nothing to generate!");
+  process.exit(0);
+}
 
 // fileName: content
 const processedClasses = {};
