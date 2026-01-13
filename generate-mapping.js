@@ -1,7 +1,6 @@
 const fs = require("fs");
-const { root, package } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
-const finalPackage = package + ".multiversion.gen";
-const file = fs.readFileSync("src/" + root + "/multiversion/multi-version.mapping", "utf-8").trim();
+const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
+const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
 
 if (file === "") {
   console.log("Nothing to generate!");
@@ -51,7 +50,7 @@ function parseType(type) {
       type = type.slice(1);
     }
     additionalClasses.push({ "parent": type, "children": [] });
-    finalType = finalPackage + "." + type.split("/").slice(-1)[0] + "Wrapper";
+    finalType = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper";
     castLeft = finalType + ".inst(";
     castRight = ")";
     classGetter = "clazz";
@@ -195,9 +194,9 @@ function processClass(clazz) {
   }
 
   const className = fileName.split("/").slice(-1)[0];
-  processedClasses[fileName] = `package ${finalPackage}.${fileName.split("/").slice(0, -1).join(".")};
+  processedClasses[fileName] = `package dev.gxlg.multiversion.gen.${fileName.split("/").slice(0, -1).join(".")};
 
-import ${package}.multiversion.R;
+import dev.gxlg.multiversion.R;
 
 public class ${className} extends ${extending ?? "R.RWrapper<" + className + ">"} {
     public static final R.RClass clazz = R.clz("${currentClass}");

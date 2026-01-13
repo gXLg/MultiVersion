@@ -1,3 +1,5 @@
+package dev.gxlg.multiversion;
+
 import net.minecraft.SharedConstants;
 
 import java.util.HashMap;

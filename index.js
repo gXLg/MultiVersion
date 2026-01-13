@@ -1,15 +1,15 @@
 const fs = require("fs");
-const { root, package } = JSON.parse(fs.readFileSync("./multi-version.json"));
+const { root } = JSON.parse(fs.readFileSync("./multi-version.json"));
 
 console.log("Welcome to MultiVersion!");
 
 /* ------------------------------------------------------------------------------------ */
 console.log("Importing Reflection files...");
-const projectDir = "src/" + root + "/multiversion";
+const projectDir = "src/" + root + "dev/gxlg/multiversion";
 if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir);
-fs.writeFileSync(projectDir + "/R.java", "package " + package + ".multiversion;\n\n" + fs.readFileSync("./MultiVersion/java/R.java", "utf-8"));
-if (!fs.existsSync(projectDir + "/multi-version.mapping")) fs.writeFileSync(projectDir + "/multi-version.mapping", "");
-fs.writeFileSync(projectDir + "/V.java", "package " + package + ".multiversion;\n\n" + fs.readFileSync("./MultiVersion/java/V.java", "utf-8"));
+fs.writeFileSync(projectDir + "/R.java", fs.readFileSync("./MultiVersion/java/R.java", "utf-8"));
+if (!fs.existsSync(projectDir + "/multi-version.mapping")) fs.writeFileSync(projectDir + "/multi-version.mapping", "# MultiVersion mapping, see LibrGetter for reference");
+fs.writeFileSync(projectDir + "/V.java", fs.readFileSync("./MultiVersion/java/V.java", "utf-8"));
 
 /* ------------------------------------------------------------------------------------ */
 console.log("Importing MultiVersion gradle configuration...");
