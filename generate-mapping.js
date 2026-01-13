@@ -92,6 +92,21 @@ function processClass(clazz) {
   const instanceFieldsInits = [];
   const constructors = [];
 
+  const instanceMethodSignatures = { "unwrap()": 1, "unwrap(Class)": 1, "downcast(Class)": 1 };
+  const staticMethodSignatures = { "inst(Object)": 1 };
+
+  function getIndexedMethodName(methodName, signature, isStatic) {
+    const signatureLookup = isStatic ? staticMethodSignatures : instanceMethodSignatures;
+    if (signature in signatureLookup) {
+      const id = signatureLookup[signature] + 1;
+      signatureLookup[signature] = id;
+      return methodName + id.toString();
+    } else {
+      signatureLookup[signature] = 1;
+      return methodName;
+    }
+  }
+
   for (const child of children) {
     const line = child.parent;
     if (isClass(line)) {
@@ -109,9 +124,11 @@ function processClass(clazz) {
       const returnType = line.split(" ")[isStatic ? 1 : 0];
       const { finalType, castLeft, castRight } = parseType(returnType);
 
+
       if (isStatic) {
+        const finalFieldName = getIndexedMethodName(pubName, pubName + "()", true);
         staticMethods.push(
-`    public static ${finalType} ${pubName}() {
+`    public static ${finalType} ${finalFieldName}() {
         return ${castLeft}clazz.fld("${names}").get()${castRight};
     }
 `
@@ -120,12 +137,16 @@ function processClass(clazz) {
         instanceFields.push(`    private final R.RField ${pubName};`);
         instanceFieldsInits.push(`        this.${pubName} = this.instance.fld("${names}");`);
         const capName = pubName.slice(0, 1).toUpperCase() + pubName.slice(1);
+
+        const finalGetterName = getIndexedMethodName("get" + capName, "get" + capName + "()", true);
+        const finalSetterName = getIndexedMethodName("set" + capName, "set" + capName + "(" + finalType + ")", true);
+
         instanceMethods.push(
-`    public ${finalType} get${capName}() {
+`    public ${finalType} ${finalGetterName}() {
         return ${castLeft}this.${pubName}.get()${castRight};
     }
 
-    public void set${capName}(${finalType} value) {
+    public void ${finalSetterName}(${finalType} value) {
         this.${pubName}.set(value);
     }`
         );
@@ -138,10 +159,12 @@ function processClass(clazz) {
     const finalArgs = [];
     const finalTypes = [];
     const finalNames = [];
+    const signatureTypes = [];
     for (const [type, name] of args) {
       const { finalType, classGetter } = parseType(type);
       finalArgs.push(finalType + " " + name);
       finalTypes.push(finalType + "." + classGetter);
+      signatureTypes.push(finalType);
       finalNames.push(name + (classGetter == "clazz" ? ".unwrap()" : ""));
     }
 
@@ -161,9 +184,11 @@ function processClass(clazz) {
 
     const methodNames = line.split("(")[0].split(" ").slice(-1)[0];
     const fileMethodName = methodNames.split("/").slice(-1)[0];
+    const signature = fileMethodName + "(" + signatureTypes.join(",") + ")";
+    const finalMethodName = getIndexedMethodName(fileMethodName, signature, isStatic);
 
     (isStatic ? staticMethods : instanceMethods).push(
-`    public ${isStatic ? "static " : ""}${finalType} ${fileMethodName}(${finalArgs.join(", ")}) {
+`    public ${isStatic ? "static " : ""}${finalType} ${finalMethodName}(${finalArgs.join(", ")}) {
          ${returnStatement}${castLeft}${isStatic ? "clazz" : "instance"}.mthd("${methodNames}"${finalTypes.map(t => ", " + t).join("")}).invk(${finalNames.join(", ")})${castRight};
     }`
     );
@@ -194,7 +219,7 @@ ${instanceMethods.join("\n\n")}
 
 ${staticMethods.join("\n\n")}
 }
-`.replace(/\n\n+/g, "\n\n").replace(/\n*([ ]*\})/g, "\n$1");
+`.replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 
 }
 
@@ -212,9 +237,8 @@ if (fs.existsSync(genRoot)) {
 for (const fileName in processedClasses) {
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
-  const className = fileName.split("/").slice(-1)[0];
   fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fileName]);
-  console.log("Generated", className);
+  console.log("Generated", fileName);
 }
 
 console.log("Done!");
