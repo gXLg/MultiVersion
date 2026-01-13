@@ -238,7 +238,7 @@ public class R {
         }
     }
 
-    public static abstract class RWrapper {
+    public static abstract class RWrapper<S extends RWrapper<S>> {
         protected final RInstance instance;
 
         protected RWrapper(RInstance instance) {
@@ -251,6 +251,10 @@ public class R {
 
         public <T> T unwrap(Class<T> type) {
             return type.cast(instance.self());
+        }
+
+        public <T extends S> T downcast(Class<T> wrapperType) {
+            return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
         }
     }
 }

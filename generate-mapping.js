@@ -174,7 +174,7 @@ function processClass(clazz) {
 
 import ${package}.multiversion.R;
 
-public class ${className} extends ${extending ?? "R.RWrapper"} {
+public class ${className} extends ${extending ?? "R.RWrapper<" + className + ">"} {
     public static final R.RClass clazz = R.clz("${currentClass}");
 
 ${instanceFields.join("\n\n")}
