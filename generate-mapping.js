@@ -36,6 +36,32 @@ if (!classes.length) {
 const processedClasses = {};
 
 function parseType(type) {
+  const generics = [];
+  if (type.endsWith(">")) {
+    // then it's a generic type!
+    const start = type.indexOf("<");
+    let runner = start;
+    let last = runner;
+    let counter = 1;
+    const gens = [];
+    while (counter) {
+      const char = type[++runner];
+      if (char == "<") {
+        counter ++;
+      } else if (char == ">") {
+        counter --;
+        if (!counter) {
+          gens.push(type.slice(last + 1, runner));
+        }
+      } else if (char == "," && counter == 1) {
+        gens.push(type.slice(last + 1, runner));
+        last = runner;
+      }
+    }
+    type = type.slice(0, start);
+    gens.forEach(g => generics.push(parseType(g).finalType));
+  }
+
   let finalType;
   let castLeft;
   let castRight;
@@ -62,6 +88,11 @@ function parseType(type) {
     classGetter = "class";
     returnStatement = type === "void" ? "" : "return "
   }
+
+  if (generics.length) {
+    finalType += "<" + generics.join(", ") + ">";
+  }
+
   return { finalType, castLeft, castRight, classGetter, returnStatement };
 }
 
@@ -122,7 +153,6 @@ function processClass(clazz) {
 
       const returnType = line.split(" ")[isStatic ? 1 : 0];
       const { finalType, castLeft, castRight } = parseType(returnType);
-
 
       if (isStatic) {
         const finalFieldName = getIndexedMethodName(pubName, pubName + "()", true);
