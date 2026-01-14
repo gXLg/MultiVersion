@@ -255,6 +255,10 @@ public class R {
             return type.cast(instance.self());
         }
 
+        public boolean isNull() {
+            return instance.self() == null;
+        }
+
         public <T extends S> T downcast(Class<T> wrapperType) {
             return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
         }
