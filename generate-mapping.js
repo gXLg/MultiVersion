@@ -42,36 +42,6 @@ function parseType(type) {
     type = type.slice(0, -2);
   }
 
-  const generics = [];
-  if (type.endsWith(">")) {
-    // then it's a generic type!
-    const start = type.indexOf("<");
-    let runner = start;
-    let last = runner;
-    let counter = 1;
-    const gens = [];
-    while (counter) {
-      const char = type[++runner];
-      if (char == "<") {
-        counter ++;
-      } else if (char == ">") {
-        counter --;
-        if (!counter) {
-          gens.push(type.slice(last + 1, runner));
-        }
-      } else if (char == "," && counter == 1) {
-        gens.push(type.slice(last + 1, runner));
-        last = runner;
-      }
-    }
-    type = type.slice(0, start);
-    gens.forEach(g => {
-      const { finalType, generic } = parseType(g);
-      generics.push(finalType + generic);
-    });
-  }
-  const generic = generics.length ? "<" + generics.join(", ") + ">" : "";
-
   let finalType;
   let castLeft;
   let castRight;
@@ -94,14 +64,14 @@ function parseType(type) {
     returnStatement = "return ";
   } else {
     finalType = type;
-    castLeft = (type === "Object" || type === "void") ? "" : "(" + type + generic + ") ";
+    castLeft = (type === "Object" || type === "void") ? "" : "(" + type + ") ";
     castRight = "";
     classGetter = "class";
     returnStatement = type === "void" ? "" : "return ";
     finalType += "[]".repeat(arrayDimension);
   }
 
-  return { finalType, castLeft, castRight, classGetter, returnStatement, generic };
+  return { finalType, castLeft, castRight, classGetter, returnStatement };
 }
 
 function isClass(line) {
@@ -114,13 +84,9 @@ function processClass(clazz) {
   const [currentClass, extendingClass] = parent.includes(" extends ") ? parent.split(" extends ") : [parent, null];
   let extending = null;
   if (extendingClass != null) {
-    const { finalType, classGetter, generic } = parseType(extendingClass);
+    const { finalType, classGetter } = parseType(extendingClass);
     if (classGetter != "clazz") {
       console.log("Wrapper class can only extend other Wrapper classes!");
-      process.exit(1);
-    }
-    if (generic != "") {
-      console.log("Wrapper class can't extend a generified class!");
       process.exit(1);
     }
     extending = finalType;
@@ -168,12 +134,12 @@ function processClass(clazz) {
       const pubName = names.split("/").slice(-1)[0];
 
       const returnType = line.split(" ")[isStatic ? 1 : 0];
-      const { finalType, castLeft, castRight, generic } = parseType(returnType);
+      const { finalType, castLeft, castRight } = parseType(returnType);
 
       if (isStatic) {
         const finalFieldName = getIndexedMethodName(pubName, pubName + "()", true);
         staticMethods.push(
-`    public static ${finalType + generic} ${finalFieldName}() {
+`    public static ${finalType} ${finalFieldName}() {
         return ${castLeft}clazz.fld("${names}").get()${castRight};
     }
 `
@@ -187,11 +153,11 @@ function processClass(clazz) {
         const finalSetterName = getIndexedMethodName("set" + capName, "set" + capName + "(" + finalType + ")", true);
 
         instanceMethods.push(
-`    public ${finalType + generic} ${finalGetterName}() {
+`    public ${finalType} ${finalGetterName}() {
         return ${castLeft}this.${pubName}.get()${castRight};
     }
 
-    public void ${finalSetterName}(${finalType + generic} value) {
+    public void ${finalSetterName}(${finalType} value) {
         this.${pubName}.set(value);
     }`
         );
@@ -206,8 +172,8 @@ function processClass(clazz) {
     const finalNames = [];
     const signatureTypes = [];
     for (const [type, name] of args) {
-      const { finalType, classGetter, generic } = parseType(type);
-      finalArgs.push(finalType + generic + " " + name);
+      const { finalType, classGetter } = parseType(type);
+      finalArgs.push(finalType + " " + name);
       finalTypes.push(finalType + "." + classGetter);
       signatureTypes.push(finalType);
       finalNames.push(name + (classGetter == "clazz" ? ".unwrap()" : ""));
@@ -225,7 +191,7 @@ function processClass(clazz) {
     }
 
     const returnType = line.split(" ")[isStatic ? 1 : 0];
-    const { finalType, castLeft, castRight, returnStatement, generic } = parseType(returnType);
+    const { finalType, castLeft, castRight, returnStatement } = parseType(returnType);
 
     const methodNames = line.split("(")[0].split(" ").slice(-1)[0];
     const fileMethodName = methodNames.split("/").slice(-1)[0];
@@ -233,7 +199,7 @@ function processClass(clazz) {
     const finalMethodName = getIndexedMethodName(fileMethodName, signature, isStatic);
 
     (isStatic ? staticMethods : instanceMethods).push(
-`    public ${isStatic ? "static " : ""}${finalType + generic} ${finalMethodName}(${finalArgs.join(", ")}) {
+`    public ${isStatic ? "static " : ""}${finalType} ${finalMethodName}(${finalArgs.join(", ")}) {
         ${returnStatement}${castLeft}${isStatic ? "clazz" : "instance"}.mthd("${methodNames}"${finalTypes.map(t => ", " + t).join("")}).invk(${finalNames.join(", ")})${castRight};
     }`
     );
