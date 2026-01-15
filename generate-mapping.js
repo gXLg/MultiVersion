@@ -255,6 +255,9 @@ function processClass(part) {
         const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
         const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
         runner = separatorIndex + 1;
+        while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
+          runner ++;
+        }
 
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
@@ -284,6 +287,9 @@ function processClass(part) {
         const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
         const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
         runner = separatorIndex + 1;
+        while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
+          runner ++;
+        }
 
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
