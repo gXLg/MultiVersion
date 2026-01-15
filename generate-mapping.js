@@ -299,7 +299,7 @@ function processClass(part) {
       const methodName = getMethodName(rawMethodName, argumentsSignature, signatures);
 
       const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
-      const methodParent = isStatic ? "this.instance" : "clazz";
+      const methodParent = isStatic ? "clazz" : "this.instance";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
       const modifier = isStatic ? "static " : "";
       const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
