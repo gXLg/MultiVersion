@@ -436,12 +436,12 @@ for (const adapter in genericAdapters) {
       `import java.util.function.Function;\n` +
       `\n` +
       `public class ${className} {\n` +
-      `    public static <${generics}> Function<?, ${baseClassName}<${generics}>> wrapper(${genericWrappers.join(", ")}) {\n` +
+      `    public static <${generics}> Function<Object, ${baseClassName}<${generics}>> wrapper(${genericWrappers.join(", ")}) {\n` +
       `        // TODO: implement\n` +
       `        // return object -> ${baseClassName.toLowerCase()};\n` +
       `    }\n` +
       `\n` +
-      `    public static <${generics}> Function<${baseClassName}<${generics}>, ?> unwrapper(${genericUnwrappers.join(", ")}) {\n` +
+      `    public static <${generics}> Function<${baseClassName}<${generics}>, Object> unwrapper(${genericUnwrappers.join(", ")}) {\n` +
       `        // TODO: implement\n` +
       `        // return ${baseClassName.toLowerCase()} -> object;\n` +
       `    }\n` +
