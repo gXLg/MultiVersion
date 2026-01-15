@@ -46,11 +46,10 @@ function typeTree(type, additionalClasses) {
     return { "type": "generic", main, generics, "wrapped": generics.some(g => g.wrapped), "generic": true };
   }
   if (type.includes("/") || type.startsWith("!")) {
-    let actualType = type;
     if (type.startsWith("!")) {
-      actualType = type.slice(1);
+      type = type.slice(1);
     }
-    const main = "dev.gxlg.multiversion.gen." + actualType.split("/").slice(-1)[0] + "Wrapper";
+    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper";
     additionalClasses.push({ "parent": type, "children": [] });
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
