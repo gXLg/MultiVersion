@@ -393,7 +393,7 @@ for (const fullyQualified in processedClasses) {
   const fileName = fullyQualified.replace("dev.gxlg.multiversion.gen.", "").replaceAll(".", "/");
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
-  fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fileName]);
+  fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fullyQualified]);
   console.log("Generated", fullyQualified);
 }
 
