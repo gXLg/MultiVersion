@@ -432,7 +432,7 @@ for (const adapter in genericAdapters) {
       adapterRoot + "/" + fileName + "Adapter.java",
       `package ${package};\n` +
       `\n` +
-      `import ${adapter}\n` +
+      `import ${adapter};\n` +
       `import java.util.function.Function;\n` +
       `\n` +
       `public class ${className} {\n` +
