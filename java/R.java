@@ -8,7 +8,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @SuppressWarnings({ "unused" })
 public class R {
@@ -150,6 +152,10 @@ public class R {
             }
             return clz;
         }
+
+        public RClass arrayType() {
+            return clz(self().arrayType());
+        }
     }
 
     public static class RInstance {
@@ -262,5 +268,14 @@ public class R {
         public <T extends S> T downcast(Class<T> wrapperType) {
             return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
         }
+    }
+
+    public static <T> Function<?, T[]> arrayWrapper(Function<Object, T> func) {
+        //noinspection unchecked
+        return obj -> (T[]) Stream.of((Object[]) obj).map(func).toArray();
+    }
+
+    public static <T> Function<T[], Object> arrayUnwrapper(Function<T, Object> func) {
+        return wrap -> Stream.of(wrap).map(func).toArray();
     }
 }

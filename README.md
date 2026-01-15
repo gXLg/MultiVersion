@@ -69,7 +69,7 @@ class Example {
 7. To use Reflection-based code, follow the next paragraph
 
 # Reflection Wrapper
-This section is work in progress.
+This section is work in progress and the underlying mechanism is constantly evolving.
 
 The previous Reflection-Sugar-Language idea has been scrapped and now a new approach is used.
 
