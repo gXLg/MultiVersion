@@ -348,34 +348,34 @@ function processClass(part) {
         );
       }
     }
-
-    processedClasses[fullyQualified] = (
-      `package ${package};\n` +
-      `\n` +
-      `import dev.gxlg.multiversion.R;\n` +
-      `\n` +
-      `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
-      `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
-      `\n` +
-      `${instanceFields.join("\n\n")}\n` +
-      `\n` +
-      `${constructors.join("\n\n")}\n` +
-      `\n` +
-      `    protected ${className}(Object instance) {\n` +
-      `        super(${extendingClassString ? "instance" : "clazz.inst(instance)"});\n` +
-      `${instanceFieldInitializers.join("\n")}\n` +
-      `    }\n` +
-      `\n` +
-      `${instanceMethods.join("\n\n")}\n` +
-      `\n` +
-      `    public static ${className} inst(Object instance) {\n` +
-      `        return new ${className}(instance);\n` +
-      `    }\n` +
-      `\n` +
-      `${staticMethods.join("\n\n")}\n` +
-      `}`
-    ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
   }
+
+  processedClasses[fullyQualified] = (
+    `package ${package};\n` +
+    `\n` +
+    `import dev.gxlg.multiversion.R;\n` +
+    `\n` +
+    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
+    `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
+    `\n` +
+    `${instanceFields.join("\n\n")}\n` +
+    `\n` +
+    `${constructors.join("\n\n")}\n` +
+    `\n` +
+    `    protected ${className}(Object instance) {\n` +
+    `        super(${extendingClassString ? "instance" : "clazz.inst(instance)"});\n` +
+    `${instanceFieldInitializers.join("\n")}\n` +
+    `    }\n` +
+    `\n` +
+    `${instanceMethods.join("\n\n")}\n` +
+    `\n` +
+    `    public static ${className} inst(Object instance) {\n` +
+    `        return new ${className}(instance);\n` +
+    `    }\n` +
+    `\n` +
+    `${staticMethods.join("\n\n")}\n` +
+    `}`
+  ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
 
 while (classes.length) {
