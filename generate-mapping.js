@@ -413,7 +413,7 @@ for (const adapter in genericAdapters) {
   const genericWrapperArray = [];
   const genericUnwrapperArray = [];
   const size = genericAdapters[adapter];
-  for (let i = 0; i < ; i++) {
+  for (let i = 0; i < size; i++) {
     const letter = genericLetters[i];
     genericArray.push(letter);
     genericWrappers.push(`Function<Object, ${letter}> wrapper${letter}`);
