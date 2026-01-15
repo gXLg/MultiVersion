@@ -270,12 +270,12 @@ public class R {
         }
     }
 
-    public static <T> Function<?, T[]> arrayWrapper(Function<Object, T> func) {
+    public static <T> Function<Object, T[]> arrayWrapper(Function<Object, T> wrapperT) {
         //noinspection unchecked
-        return obj -> (T[]) Stream.of((Object[]) obj).map(func).toArray();
+        return obj -> (T[]) Stream.of((Object[]) obj).map(wrapperT).toArray();
     }
 
-    public static <T> Function<T[], Object> arrayUnwrapper(Function<T, Object> func) {
-        return wrap -> Stream.of(wrap).map(func).toArray();
+    public static <T> Function<T[], Object> arrayUnwrapper(Function<T, Object> unwrapperT) {
+        return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
     }
 }
