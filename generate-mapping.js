@@ -349,8 +349,7 @@ function processClass(part) {
       }
     }
 
-    const fileName = fullyQualified.replaceAll(".", "/");
-    processedClasses[fileName] = (
+    processedClasses[fullyQualified] = (
       `package ${package};\n` +
       `\n` +
       `import dev.gxlg.multiversion.R;\n` +
@@ -386,15 +385,16 @@ while (additionalClasses.length) {
   processClass(additionalClasses.shift());
 }
 
-const genRoot = "src/" + root;
+const genRoot = "src/" + root + "/dev/gxlg/multiversion/gen";
 if (fs.existsSync(genRoot)) {
   fs.rmSync(genRoot, { "recursive": true });
 }
-for (const fileName in processedClasses) {
+for (const fullyQualified in processedClasses) {
+  const fileName = fullyQualified.replace("dev.gxlg.multiversion.gen.", "").replaceAll(".", "/");
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
   fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fileName]);
-  console.log("Generated", fileName.replaceAll("/", "."));
+  console.log("Generated", fullyQualified);
 }
 
 console.log("Done generating!");
