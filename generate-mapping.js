@@ -54,7 +54,7 @@ function typeTree(type, additionalClasses) {
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
   if (type == "void") {
-    return { "type": "void", "wrapped": false, "generic": false };
+    return { "type": "void", "main": "void", "wrapped": false, "generic": false };
   }
   if (type == "Object") {
     return { "type": "object", "wrapped": false, "generic": false };
