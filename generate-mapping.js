@@ -140,7 +140,7 @@ function buildUnwrapper(tree) {
   } else if (type == "wrapper") {
     return `%.unwrap()`;
   } else if (type == "array") {
-    return `R.arrayUnwrapper(${_buildUnwrapper(main)}).apply(%)`;
+    return `R.<${buildTypeString(main)}>arrayUnwrapper(${_buildUnwrapper(main)}).apply(%)`;
   } else if (type == "generic") {
     genericAdapters[main] = generics.length;
     return `dev.gxlg.multiversion.adapters.${main}Adapter.<${generics.map(buildTypeString)}>unwrapper(${generics.map(_buildUnwrapper).join(", ")}).apply(%)`;
