@@ -155,7 +155,7 @@ function _buildUnwrapper(tree) {
   if (type == "object" || type == "java") {
     return `x -> x`;
   } else if (type == "wrapper") {
-    return `x::unwrap`;
+    return `${main}::unwrap`;
   } else if (type == "array") {
     return `R.arrayUnwrapper(${_buildUnwrapper(main)})`;
   } else if (type == "generic") {
