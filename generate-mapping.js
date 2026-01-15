@@ -57,7 +57,7 @@ function typeTree(type, additionalClasses) {
     return { "type": "void", "main": "void", "wrapped": false, "generic": false };
   }
   if (type == "Object") {
-    return { "type": "object", "wrapped": false, "generic": false };
+    return { "type": "object", "main": "Object", "wrapped": false, "generic": false };
   }
   return { "type": "java", "main": type, "wrapped": false, "generic": false };
 }
