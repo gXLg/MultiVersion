@@ -410,8 +410,8 @@ for (const adapter in genericAdapters) {
   const className = baseClassName + "Adapter";
 
   const genericArray = [];
-  const genericWrapperArray = [];
-  const genericUnwrapperArray = [];
+  const genericWrappers = [];
+  const genericUnwrappers = [];
   const size = genericAdapters[adapter];
   for (let i = 0; i < size; i++) {
     const letter = genericLetters[i];
