@@ -143,7 +143,7 @@ function buildUnwrapper(tree) {
     return `R.arrayUnwrapper(${_buildUnwrapper(main)}).apply(%)`;
   } else if (type == "generic") {
     genericAdapters[main] = generics.length;
-    return `dev.gxlg.multiversion.adapters.${main}Adapter.<${generics.map(buildStringType)}>unwrapper(${generics.map(_buildUnwrapper).join(", ")}).apply(%)`;
+    return `dev.gxlg.multiversion.adapters.${main}Adapter.<${generics.map(buildTypeString)}>unwrapper(${generics.map(_buildUnwrapper).join(", ")}).apply(%)`;
   }
 }
 
