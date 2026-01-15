@@ -4,11 +4,11 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class Optional {
-    public static <T> Function<?, Optional<T>> wrapper(Function<Object, T> wrapperT) {
-        return obj -> Optional.of(wrapperT.apply(obj));
+    public static <S> Function<Object, Optional<S>> wrapper(Function<Object, S> wrapperS) {
+        return object -> Optional.of(wrapperS.apply(object));
     }
 
-    public static <T> Function<Optional<T>, ?> unwrapper(Function<T, Object> unwrapperT) {
-        return opt -> opt.map(unwrapperT).orElse(null);
+    public static <S> Function<Optional<S>, Object> unwrapper(Function<S, Object> unwrapperS) {
+        return optional -> optional.map(unwrapperS).orElse(null);
     }
 }

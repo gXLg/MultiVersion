@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.function.Function;
 
 public class List {
-    public static <T> Function<?, List<T>> wrapper(Function<Object, T> wrapperT) {
-        return obj -> ((List<?>) obj).stream().map(wrapperT).toList();
+    public static <S> Function<Object, List<S>> wrapper(Function<Object, S> wrapperS) {
+        return object -> ((List<?>) object).stream().map(wrapperS).toList();
     }
 
-    public static <T> Function<List<T>, ?> unwrapper(Function<T, Object> unwrapperT) {
-        return list -> list.stream().map(unwrapperT).toList();
+    public static <S> Function<List<S>, Object> unwrapper(Function<S, Object> unwrapperS) {
+        return list -> list.stream().map(unwrapperS).toList();
     }
 }

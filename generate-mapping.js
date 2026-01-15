@@ -118,7 +118,7 @@ function _buildWrapper(tree) {
   } else if (type == "java") {
     return `x -> (${main}) x`;
   } else if (type == "wrapper") {
-    return `x -> ${main}.inst(x)`;
+    return `${main}::inst`;
   } else if (type == "array") {
     if (!wrapped && !generic) {
       return `x -> (${main.main}[]) x`;
