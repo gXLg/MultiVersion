@@ -143,7 +143,7 @@ function buildUnwrapper(tree) {
     return `R.arrayUnwrapper(${_buildUnwrapper(main)}).apply(%)`;
   } else if (type == "generic") {
     genericAdapters[main] = generics.length;
-    return `dev.gxlg.multiversion.adapters.${main}Adapter.unwrapper(${generics.map(_buildUnwrapper).join(", ")}).apply(%)`;
+    return `dev.gxlg.multiversion.adapters.${main}Adapter.<${generics.map(buildStringType)}>unwrapper(${generics.map(_buildUnwrapper).join(", ")}).apply(%)`;
   }
 }
 
@@ -155,7 +155,7 @@ function _buildUnwrapper(tree) {
   if (type == "object" || type == "java") {
     return `x -> x`;
   } else if (type == "wrapper") {
-    return `x -> x.unwrap()`;
+    return `x::unwrap`;
   } else if (type == "array") {
     return `R.arrayUnwrapper(${_buildUnwrapper(main)})`;
   } else if (type == "generic") {
