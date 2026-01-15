@@ -426,7 +426,7 @@ for (const adapter in genericAdapters) {
   }
   const generics = genericArray.join(", ");
 
-  if (!fs.existsSync(adapterRoot + "/" + fileName + "Adapter.java") || fs.readFileSync(adaptersRoot + "/" + fileName + "Adapter.java", "utf-8").includes("TODO: implement")) {
+  if (!fs.existsSync(adapterRoot + "/" + fileName + "Adapter.java") || fs.readFileSync(adapterRoot + "/" + fileName + "Adapter.java", "utf-8").includes("TODO: implement")) {
     console.log("Please implement the adapter at", "dev.gxlg.multiversion.adapters." + adapter + "Adapter");
     fs.writeFileSync(
       adapterRoot + "/" + fileName + "Adapter.java",
