@@ -347,16 +347,16 @@ function processClass(part) {
         instanceFieldInitializers.push(`        this.${fieldName} = this.instance.fld("${reflectionFieldGetter}");`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
-        const getMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
-        const setMethodName = getMethodName("set" + capitalName, [buildSignatureType(fieldTypeTree)], instanceMethodSignatures);
+        const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
+        const setterMethodName = getMethodName("set" + capitalName, [buildSignatureType(fieldTypeTree)], instanceMethodSignatures);
         const fieldTypeString = buildTypeString(fieldTypeTree);
 
         instanceMethods.push(
-          `    public ${fieldTypeString} ${getMethodName}() {\n` +
+          `    public ${fieldTypeString} ${getterMethodName}() {\n` +
           `        return ${buildWrapper(fieldTypeTree).replace("%", "this." + fieldName + ".get()")};\n` +
           `    }\n` +
           `    \n` +
-          `    public void ${setMethodName}(${fieldTypeString} value) {\n` +
+          `    public void ${setterMethodName}(${fieldTypeString} value) {\n` +
           `        this.${fieldName}.set(${buildUnwrapper(fieldTypeTree).replace("%", "value")});\n` +
           `    }`
         );
