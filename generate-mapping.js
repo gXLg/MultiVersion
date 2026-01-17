@@ -399,8 +399,10 @@ function processInterface(part) {
   if (fullyQualified in processedClasses) {
     return;
   }
+  additionalClasses.push({ "parent": reflectionClassGetter, "children": [] });
 
   const className = fullyQualified.split(".").slice(-1)[0];
+  const wrapperClassName = className.slice(0, -9);
   const package = fullyQualified.split(".").slice(0, -1).join(".");
 
   // work out the body
@@ -477,25 +479,20 @@ function processInterface(part) {
     `\n` +
     `import java.lang.reflect.Proxy;\n` +
     `\n` +
-    `public interface ${className} extends R.RWrapperInterface<${className}> {\n` +
+    `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}> {\n` +
     `    R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
     `${instanceMethods.join("\n\n")}\n` +
     `\n` +
     `    @Override\n` +
-    `    default Object construct() {\n` +
-    `        return Proxy.newProxyInstance(\n` +
+    `    default ${wrapperClassName} wrapper() {\n` +
+    `        return ${wrapperClassName}.inst(Proxy.newProxyInstance(\n` +
     `            Thread.currentThread().getContextClassLoader(), new Class[]{ clazz.self() }, (proxy, method, args) -> {\n` +
     `                String methodName = method.getName();\n` +
     `${instanceMethodCallers.join("\n\n")}\n` +
     `                return method.invoke(proxy, args);\n` +
     `            }\n` +
-    `        );\n` +
-    `    }\n` +
-    `\n` +
-    `    @Override\n` +
-    `    default <T> T construct(Class<T> type) {\n` +
-    `        return type.cast(this.construct());\n` +
+    `        ));\n` +
     `    }\n` +
     `}`
   ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");

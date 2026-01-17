@@ -99,10 +99,8 @@ public class R {
         return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
     }
 
-    public interface RWrapperInterface<S extends RWrapperInterface<S>> {
-        Object construct();
-
-        <T> T construct(Class<T> type);
+    public interface RWrapperInterface<T extends RWrapper<T>> {
+        T wrapper();
     }
 
     public static class RClass {
