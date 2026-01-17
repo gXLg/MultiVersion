@@ -452,9 +452,9 @@ function processInterface(part) {
       instanceMethods.push(
         `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
       );
-      const exec = `instance.${methodName}((${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")}))`;
+      const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       instanceMethodCallers.push(
-        `                if (${reflectionMethodGetter.split("/").map(g => "methodName == " + g).join(" || ")}) {\n` +
+        `                if (${reflectionMethodGetter.split("/").map(g => "methodName == \"" + g + "\"").join(" || ")}) {\n` +
         `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
         `                }`
       );
@@ -478,7 +478,7 @@ function processInterface(part) {
     `import java.lang.reflect.Proxy;\n` +
     `\n` +
     `public interface ${className} extends R.RWrapperInterface<${className}> {\n` +
-    `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
+    `    R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
     `${instanceMethods.join("\n\n")}\n` +
     `\n` +
@@ -487,7 +487,6 @@ function processInterface(part) {
     `        return Proxy.newProxyInstance(\n` +
     `            Thread.currentThread().getContextClassLoader(), new Class[]{ clazz.self() }, (proxy, method, args) -> {\n` +
     `                String methodName = method.getName();\n` +
-    `                ${className} instance = ${className}.inst(proxy);\n` +
     `${instanceMethodCallers.join("\n\n")}\n` +
     `                return method.invoke(proxy, args);\n` +
     `            }\n` +
