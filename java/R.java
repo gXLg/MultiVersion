@@ -90,6 +90,21 @@ public class R {
         return new RMethod(inst, mthd);
     }
 
+    public static <T> Function<Object, T[]> arrayWrapper(Function<Object, T> wrapperT) {
+        //noinspection unchecked
+        return obj -> (T[]) Stream.of((Object[]) obj).map(wrapperT).toArray();
+    }
+
+    public static <T> Function<T[], Object> arrayUnwrapper(Function<T, Object> unwrapperT) {
+        return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
+    }
+
+    public interface RWrapperInterface<S extends RWrapperInterface<S>> {
+        Object construct();
+
+        <T> T construct(Class<T> type);
+    }
+
     public static class RClass {
         private final Supplier<Class<?>> lazyClz;
 
@@ -268,14 +283,5 @@ public class R {
         public <T extends S> T downcast(Class<T> wrapperType) {
             return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
         }
-    }
-
-    public static <T> Function<Object, T[]> arrayWrapper(Function<Object, T> wrapperT) {
-        //noinspection unchecked
-        return obj -> (T[]) Stream.of((Object[]) obj).map(wrapperT).toArray();
-    }
-
-    public static <T> Function<T[], Object> arrayUnwrapper(Function<T, Object> unwrapperT) {
-        return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
     }
 }

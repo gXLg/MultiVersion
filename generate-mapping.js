@@ -196,7 +196,6 @@ function getMethodName(rawMethodName, argumentsSignature, signatures) {
   }
 }
 
-
 const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
 const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
 
@@ -206,10 +205,20 @@ const additionalClasses = [];
 const genericAdapters = {};
 processPart(classes, lines);
 
+if (!classes.length) {
+  console.log("Nothing to process!");
+  process.exit(0);
+}
+
 // fileName: content
 const processedClasses = {};
 
 function processClass(part) {
+  if (part.parent.startsWith("interface ")) {
+    processInterface(part);
+    return;
+  }
+
   // parse extensions
   const [leftClass, rightClass] = part.parent.includes(" extends ") ? part.parent.split(" extends ") : [part.parent, null];
   let extendingClassString = null;
@@ -379,6 +388,116 @@ function processClass(part) {
     `    }\n` +
     `\n` +
     `${staticMethods.join("\n\n")}\n` +
+    `}`
+  ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
+}
+
+function processInterface(part) {
+  // parse class name
+  const reflectionClassGetter = part.parent.slice(9).trimStart();
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
+  if (fullyQualified in processedClasses) {
+    return;
+  }
+
+  const className = fullyQualified.split(".").slice(-1)[0];
+  const package = fullyQualified.split(".").slice(0, -1).join(".");
+
+  // work out the body
+  const instanceMethods = [];
+  const instanceMethodCallers = [];
+
+  const instanceMethodSignatures = { "construct()": 1, "construct(Class)": 1 };
+
+  for (const child of part.children) {
+    if (child.parent.startsWith("<init>")) {
+      // constructor
+      console.log("Interfaces can't have constructors!");
+      process.exit(1);
+
+    } else if (child.parent.endsWith(")")) {
+      // method
+      if (child.parent.startsWith("static ")) {
+        console.log("Interface wrappers shouldn't have static methods!");
+        process.exit(1);
+      }
+
+      const lineToParse = child.parent;
+      const returnTypeIndex = brackets(lineToParse, 0, " ");
+      const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses);
+
+      const reflectionMethodGetter = lineToParse.slice(returnTypeIndex + 1).trimStart().split("(")[0];
+      const argumentsToParse = lineToParse.split("(")[1].slice(0, -1).trim();
+      const arguments = [];
+      let runner = 0;
+      while (runner < argumentsToParse.length) {
+        const argumentTypeIndex = brackets(argumentsToParse, runner, " ");
+        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses);
+        const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
+        const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
+        runner = separatorIndex + 1;
+        while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
+          runner ++;
+        }
+
+        arguments.push({ "name": argumentName, "type": argumentTypeTree });
+      }
+
+      const rawMethodName = reflectionMethodGetter.split("/").slice(-1)[0];
+      const argumentsSignature = arguments.map(a => buildSignatureType(a.type));
+      const methodName = getMethodName(rawMethodName, argumentsSignature, instanceMethodSignatures);
+
+      const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
+      const returnNullStatement = returnTypeTree.type == "void" ? "                    return null;\n" : "";
+      instanceMethods.push(
+        `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
+      );
+      const exec = `instance.${methodName}((${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")}))`;
+      instanceMethodCallers.push(
+        `                if (${reflectionMethodGetter.split("/").map(g => "methodName == " + g).join(" || ")}) {\n` +
+        `                    ${returnStatement}${buildUnwrapper(returnType).replace("%", exec)};\n${returnNullStatement}`
+        `                }`
+      );
+
+    } else if (child.parent.includes(" extends ") || child.parent.split(" ").length == 1) {
+      console.log("Interface wrappers shouldn't have inner classes!");
+      process.exit(1);
+
+    } else {
+      // field
+      console.log("Interfaces can't have fields!");
+      process.exit(1);
+    }
+  }
+
+  processedClasses[fullyQualified] = (
+    `package ${package};\n` +
+    `\n` +
+    `import dev.gxlg.multiversion.R;\n` +
+    `\n` +
+    `import java.lang.reflect.Proxy;\n` +
+    `\n` +
+    `public interface ${className} extends R.RWrapperInterface<${className}> {\n` +
+    `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
+    `\n` +
+    `${instanceMethods.join("\n\n")}\n` +
+    `\n` +
+    `    @Override\n` +
+    `    default Object construct() {\n` +
+    `        return Proxy.newProxyInstance(\n` +
+    `            Thread.currentThread().getContextClassLoader(), new Class[]{ clazz.self() }, (proxy, method, args) -> {\n` +
+    `                String methodName = method.getName();\n` +
+    `                ${className} instance = ${className}.inst(proxy);\n` +
+    `${instanceMethodCallers.join("\n\n")}\n` +
+    `                return method.invoke(proxy, args);\n` +
+    `            }\n` +
+    `        );\n` +
+    `    }\n` +
+    `\n` +
+    `    @Override\n` +
+    `    default <T> T construct(Class<?> type) {\n` +
+    `        return type.cast(this.construct());\n` +
+    `    }\n` +
     `}`
   ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
