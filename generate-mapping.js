@@ -455,7 +455,7 @@ function processInterface(part) {
       const exec = `instance.${methodName}((${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")}))`;
       instanceMethodCallers.push(
         `                if (${reflectionMethodGetter.split("/").map(g => "methodName == " + g).join(" || ")}) {\n` +
-        `                    ${returnStatement}${buildUnwrapper(returnType).replace("%", exec)};\n${returnNullStatement}`
+        `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}`
         `                }`
       );
 
