@@ -44,11 +44,10 @@ git submodule add https://github.com/gXLg/MultiVersion
 3. Create a config file `multi-version.json` with following content:
 ```json
 {
-    "root": "the path to the root of your source code inside `src`, e.g. `main/java/com/gxlg/example`",
-    "package": "packge name of your project, e.g. `com.gxlg.example`"
+    "root": "the path to the root of your source code inside `src`, e.g. `main/java`"
 }
 ```
-4. run `node MultiVersion` - this will include an `apply` command in your `build.gradle` to import MultiVersion's configs and create a stub `Reflection.java` file
+4. run `node MultiVersion` - this will include an `apply` command in your `build.gradle` to import MultiVersion's configs and create a directory for `dev.gxlg.multiversion`
 5. Write your code.
 6. Whenever you want to write version dependent code, just write, e.g.:
 ```java
