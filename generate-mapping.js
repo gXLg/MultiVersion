@@ -454,7 +454,7 @@ function processInterface(part) {
       );
       const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       instanceMethodCallers.push(
-        `                if (${reflectionMethodGetter.split("/").map(g => "methodName == \"" + g + "\"").join(" || ")}) {\n` +
+        `                if (${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) {\n` +
         `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
         `                }`
       );
@@ -494,7 +494,7 @@ function processInterface(part) {
     `    }\n` +
     `\n` +
     `    @Override\n` +
-    `    default <T> T construct(Class<?> type) {\n` +
+    `    default <T> T construct(Class<T> type) {\n` +
     `        return type.cast(this.construct());\n` +
     `    }\n` +
     `}`
