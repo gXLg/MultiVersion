@@ -72,7 +72,7 @@ function buildTypeString(tree) {
     return buildTypeString(main) + "[]";
   }
   if (type == "generic") {
-    return main + "<" + generics.map(g => buildTypeString(g)).join(", ") + ">";
+    return main.replaceAll("$", ".") + "<" + generics.map(g => buildTypeString(g)).join(", ") + ">";
   }
   if (type == "wrapper") {
     return main;
