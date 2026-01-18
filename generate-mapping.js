@@ -522,13 +522,14 @@ console.log("Done generating!");
 const adapterRoot = "src/" + root + "/dev/gxlg/multiversion/adapters";
 const genericLetters = "STUVWXYZ";
 for (const adapter in genericAdapters) {
-  const adapterClass = adapter.split("$")[0];
+  const adapterBaseClass = adapter.split("$")[0];
   const fileName = adapter.replaceAll(".", "/");
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(adapterRoot + "/" + folder, { "recursive": true });
   const package = "dev.gxlg.multiversion.adapters." + adapter.split(".").slice(0, -1).join(".");
-  const baseClassName = adapter.split(".").slice(-1)[0].replaceAll("$", ".");
+  const baseClassName = adapter.split(".").slice(-1)[0];
   const className = baseClassName + "Adapter";
+  const adapterClassName = baseClassName.replaceAll("$", ".");
 
   const genericArray = [];
   const genericWrappers = [];
@@ -548,16 +549,16 @@ for (const adapter in genericAdapters) {
       adapterRoot + "/" + fileName + "Adapter.java",
       `package ${package};\n` +
       `\n` +
-      `import ${adapterClass};\n` +
+      `import ${adapterBaseClass};\n` +
       `import java.util.function.Function;\n` +
       `\n` +
       `public class ${className} {\n` +
-      `    public static <${generics}> Function<Object, ${baseClassName}<${generics}>> wrapper(${genericWrappers.join(", ")}) {\n` +
+      `    public static <${generics}> Function<Object, ${adapterClassName}<${generics}>> wrapper(${genericWrappers.join(", ")}) {\n` +
       `        // TODO: implement\n` +
       `        // return object -> ${baseClassName.toLowerCase()};\n` +
       `    }\n` +
       `\n` +
-      `    public static <${generics}> Function<${baseClassName}<${generics}>, Object> unwrapper(${genericUnwrappers.join(", ")}) {\n` +
+      `    public static <${generics}> Function<${adapterClassName}<${generics}>, Object> unwrapper(${genericUnwrappers.join(", ")}) {\n` +
       `        // TODO: implement\n` +
       `        // return ${baseClassName.toLowerCase()} -> object;\n` +
       `    }\n` +
