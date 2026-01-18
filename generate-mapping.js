@@ -522,11 +522,12 @@ console.log("Done generating!");
 const adapterRoot = "src/" + root + "/dev/gxlg/multiversion/adapters";
 const genericLetters = "STUVWXYZ";
 for (const adapter in genericAdapters) {
+  const adapterClass = adapter.split("$")[0];
   const fileName = adapter.replaceAll(".", "/");
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(adapterRoot + "/" + folder, { "recursive": true });
   const package = "dev.gxlg.multiversion.adapters." + adapter.split(".").slice(0, -1).join(".");
-  const baseClassName = adapter.split(".").slice(-1)[0];
+  const baseClassName = adapter.split(".").slice(-1)[0].replaceAll("$", ".");
   const className = baseClassName + "Adapter";
 
   const genericArray = [];
@@ -547,7 +548,7 @@ for (const adapter in genericAdapters) {
       adapterRoot + "/" + fileName + "Adapter.java",
       `package ${package};\n` +
       `\n` +
-      `import ${adapter};\n` +
+      `import ${adapterClass};\n` +
       `import java.util.function.Function;\n` +
       `\n` +
       `public class ${className} {\n` +
