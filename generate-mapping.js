@@ -47,7 +47,7 @@ function typeTree(type, additionalClasses) {
       process.exit(1);
     }
     const generics = gens.map(g => typeTree(g, additionalClasses));
-    return { "type": "generic", "main": type, generics, "wrapped": generics.some(g => g.wrapped), "generic": true };
+    return { "type": "generic", main, generics, "wrapped": generics.some(g => g.wrapped), "generic": true };
   }
   if (type.includes("/") || type.startsWith("!")) {
     if (type.startsWith("!")) {
@@ -77,8 +77,7 @@ function buildTypeString(tree) {
   if (type == "wrapper") {
     return main;
   }
-  return main;
-  //return main.replaceAll("$", ".");
+  return main.replaceAll("$", ".");
 }
 
 function buildClassGetter(tree) {
