@@ -77,7 +77,8 @@ function buildTypeString(tree) {
   if (type == "wrapper") {
     return main;
   }
-  return main.replaceAll("$", ".");
+  return main;
+  //return main.replaceAll("$", ".");
 }
 
 function buildClassGetter(tree) {
