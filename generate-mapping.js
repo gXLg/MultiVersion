@@ -206,7 +206,7 @@ function getMethodName(rawMethodName, argumentsSignature, signatures) {
 const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
 const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
 
-const lines = file.split("\n").filter(l => !l.startsWith("#") && l.trim().length);
+const lines = file.split("\n").map(l => l.split("#")[0].trimEnd()).filter(l => l.trim().length);
 const classes = [];
 const additionalClasses = [];
 const genericAdapters = {};
