@@ -15,7 +15,7 @@ public class V {
         }
 
         R.RClass constants = R.clz(SharedConstants.class);
-        Object gameVersion = constants.mthd("method_16673/getGameVersion").invk();
+        Object gameVersion = constants.mthd("method_16673/getGameVersion/getCurrentVersion").invk();
         try {
             R.RClass gameVersionClz = R.clz("com.mojang.bridge.game.GameVersion");
             version = new MinecraftVersion((String) gameVersionClz.inst(gameVersion).mthd("method_48019/getName").invk());
