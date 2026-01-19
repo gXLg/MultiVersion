@@ -386,7 +386,7 @@ function processClass(part) {
     `\n` +
     `    protected ${className}(Object instance) {\n` +
     `        super(instance);\n` +
-    `        R.RInstance rInstance = clazz.inst(instance);;\n` +
+    `        R.RInstance rInstance = clazz.inst(instance);\n` +
     `${instanceFieldInitializers.join("\n")}\n` +
     `    }\n` +
     `\n` +
