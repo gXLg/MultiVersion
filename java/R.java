@@ -281,5 +281,12 @@ public class R {
         public <T extends S> T downcast(Class<T> wrapperType) {
             return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
         }
+
+        public boolean equals(S wrapper) {
+            if (this.isNull()) {
+                return wrapper.isNull();
+            }
+            return this.unwrap().equals(wrapper.unwrap());
+        }
     }
 }

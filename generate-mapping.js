@@ -257,6 +257,7 @@ function processClass(part) {
 
   const constructors = [];
   const instanceMethodSignatures = { "unwrap()": 1, "unwrap(Class)": 1, "downcast(Class)": 1, "isNull()": 1 };
+  instanceMethodSignatures[`equals(${fullyQualified})`] = 1;
   const staticMethodSignatures = { "inst(Object)": 1 };
 
   for (const child of part.children) {
