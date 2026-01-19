@@ -90,8 +90,8 @@ public class R {
         return new RMethod(inst, mthd);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Function<Object, T[]> arrayWrapper(Function<Object, T> wrapperT) {
-        //noinspection unchecked
         return obj -> (T[]) Stream.of((Object[]) obj).map(wrapperT).toArray();
     }
 
