@@ -283,7 +283,7 @@ public class R {
         }
 
         public boolean equals(S wrapper) {
-            return Objects.equal(instance, wrapper.instance);
+            return Objects.equals(instance, wrapper.instance);
         }
     }
 }
