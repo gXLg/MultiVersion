@@ -316,7 +316,7 @@ function processClass(part) {
       const methodName = getMethodName(rawMethodName, argumentsSignature, signatures);
 
       const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
-      const methodParent = isStatic ? "clazz" : "this.instance";
+      const methodParent = isStatic ? "clazz" : "clazz.inst(this.instance)";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
       const modifier = isStatic ? "static " : "";
       const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
@@ -385,7 +385,7 @@ function processClass(part) {
     `${constructors.join("\n\n")}\n` +
     `\n` +
     `    protected ${className}(Object instance) {\n` +
-    `        super(${extendingClassString ? "instance" : "clazz.inst(instance)"});\n` +
+    `        super(instance);\n` +
     `${instanceFieldInitializers.join("\n")}\n` +
     `    }\n` +
     `\n` +

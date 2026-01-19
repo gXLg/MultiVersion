@@ -260,33 +260,30 @@ public class R {
     }
 
     public static abstract class RWrapper<S extends RWrapper<S>> {
-        protected final RInstance instance;
+        protected final Object instance;
 
-        protected RWrapper(RInstance instance) {
+        protected RWrapper(Object instance) {
             this.instance = instance;
         }
 
         public Object unwrap() {
-            return instance.self();
+            return instance;
         }
 
         public <T> T unwrap(Class<T> type) {
-            return type.cast(instance.self());
+            return type.cast(instance);
         }
 
         public boolean isNull() {
-            return instance.self() == null;
+            return instance == null;
         }
 
         public <T extends S> T downcast(Class<T> wrapperType) {
-            return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance.self()));
+            return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance));
         }
 
         public boolean equals(S wrapper) {
-            if (this.isNull()) {
-                return wrapper.isNull();
-            }
-            return this.unwrap().equals(wrapper.unwrap());
+            return Objects.equal(instance, wrapper.instance);
         }
     }
 }
