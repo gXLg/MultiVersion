@@ -352,7 +352,7 @@ function processClass(part) {
 
       } else {
         instanceFields.push(`    private final R.RField ${fieldName};`);
-        instanceFieldInitializers.push(`        this.${fieldName} = this.instance.fld("${reflectionFieldGetter}");`);
+        instanceFieldInitializers.push(`        this.${fieldName} = rInstance.fld("${reflectionFieldGetter}");`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
         const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
@@ -386,6 +386,7 @@ function processClass(part) {
     `\n` +
     `    protected ${className}(Object instance) {\n` +
     `        super(instance);\n` +
+    `        R.RInstance rInstance = clazz.inst(instance);;\n` +
     `${instanceFieldInitializers.join("\n")}\n` +
     `    }\n` +
     `\n` +
