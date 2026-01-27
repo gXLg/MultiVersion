@@ -255,7 +255,8 @@ function processClass(part) {
   }
 
   // parse class name
-  const reflectionClassGetter = leftClass;
+  const rGetter = shortClassNames[leftClass] ?? leftClass
+  const reflectionClassGetter = rGetter.startsWith("!") ? rGetter.slice(1) : rGetter;
   const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Wrapper";
   if (fullyQualified in processedClasses) {
     return;
@@ -419,7 +420,9 @@ function processClass(part) {
 
 function processInterface(part) {
   // parse class name
-  const reflectionClassGetter = part.parent.slice(9).trimStart();
+  const leftClass = part.parent.slice(9).trimStart()
+  const rGetter = shortClassNames[leftClass] ?? leftClass
+  const reflectionClassGetter = rGetter.startsWith("!") ? rGetter.slice(1) : rGetter;
   const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
   if (fullyQualified in processedClasses) {
     return;
