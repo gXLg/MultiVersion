@@ -300,6 +300,10 @@ public class R {
             return instance == null;
         }
 
+        public <T extends S> boolean isInstanceOf(Class<T> wrapperType) {
+          return wrapperType.isAssignableFrom(instance.getClass());
+        }
+
         public <T extends S> T downcast(Class<T> wrapperType) {
             return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance));
         }
