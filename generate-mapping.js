@@ -18,7 +18,7 @@ function brackets(string, start, endChar) {
 
 function typeTree(type, additionalClasses, shortClassNames) {
   if (type in shortClassNames) {
-    return typeTree(shortClassNames[type], additionalClassNames, shortClassNames);
+    return typeTree(shortClassNames[type], additionalClasses, shortClassNames);
   }
   if (type.endsWith("[]")) {
     const main = typeTree(type.slice(0, -2), additionalClasses, shortClassNames);
