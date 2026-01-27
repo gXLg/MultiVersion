@@ -53,7 +53,7 @@ function typeTree(type, additionalClasses) {
     if (type.startsWith("!")) {
       type = type.slice(1);
     }
-    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper";
+    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0];
     additionalClasses.push({ "parent": type, "children": [] });
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
@@ -240,7 +240,7 @@ function processClass(part) {
 
   // parse class name
   const reflectionClassGetter = leftClass;
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Wrapper";
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0];
   if (fullyQualified in processedClasses) {
     return;
   }
@@ -404,7 +404,7 @@ function processClass(part) {
 function processInterface(part) {
   // parse class name
   const reflectionClassGetter = part.parent.slice(9).trimStart();
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Interface";
   if (fullyQualified in processedClasses) {
     return;
   }
