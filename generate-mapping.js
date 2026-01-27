@@ -16,9 +16,12 @@ function brackets(string, start, endChar) {
   return runner;
 }
 
-function typeTree(type, additionalClasses) {
+function typeTree(type, additionalClasses, shortClassNames) {
+  if (type in shortClassNames) {
+    return typeTree(shortClassNames[type], additionalClassNames, shortClassNames);
+  }
   if (type.endsWith("[]")) {
-    const main = typeTree(type.slice(0, -2), additionalClasses);
+    const main = typeTree(type.slice(0, -2), additionalClasses, shortClassNames);
     return { "type": "array", main, "wrapped": main.wrapped, "generic": main.generic };
   }
   if (type.endsWith(">")) {
@@ -41,19 +44,20 @@ function typeTree(type, additionalClasses) {
         last = runner;
       }
     }
-    const main = type.slice(0, start);
+    const rmain = type.slice(0, start);
+    const main = shortClassNames[rmain] ?? rmain;
     if (main.includes("/") || main.startsWith("!")) {
       console.log("Wrapper classes shouldn't be generic!");
       process.exit(1);
     }
-    const generics = gens.map(g => typeTree(g, additionalClasses));
+    const generics = gens.map(g => typeTree(g, additionalClasses, shortClassNames));
     return { "type": "generic", main, generics, "wrapped": generics.some(g => g.wrapped), "generic": true };
   }
   if (type.includes("/") || type.startsWith("!")) {
     if (type.startsWith("!")) {
       type = type.slice(1);
     }
-    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0];
+    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper";
     additionalClasses.push({ "parent": type, "children": [] });
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
@@ -206,7 +210,19 @@ function getMethodName(rawMethodName, argumentsSignature, signatures) {
 const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
 const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
 
-const lines = file.split("\n").map(l => l.split("#")[0].trimEnd()).filter(l => l.trim().length);
+const rlines = file.split("\n").map(l => l.split("#")[0].trimEnd()).filter(l => l.trim().length);
+const shortClassNames = {};
+const lines = [];
+for (const line of rlines) {
+  if (line.startsWith("import ")) {
+    const className = line.slice(7).trimStart();
+    const shortName = className.split(".").slice(-1)[0];
+    shortClassNames[shortName] = className;
+  } else {
+    lines.push(line);
+  }
+}
+
 const classes = [];
 const additionalClasses = [];
 const genericAdapters = {};
@@ -227,10 +243,10 @@ function processClass(part) {
   }
 
   // parse extensions
-  const [leftClass, rightClass] = part.parent.includes(" extends ") ? part.parent.split(" extends ") : [part.parent, null];
+  const [leftClass, rightClass] = part.parent.includes(" extends ") ? part.parent.split(" extends ").map(c => c.trim()) : [part.parent, null];
   let extendingClassString = null;
   if (rightClass != null) {
-    const tree = typeTree(rightClass, additionalClasses);
+    const tree = typeTree(rightClass, additionalClasses, shortClassNames);
     if (tree.type != "wrapper") {
       console.log("Wrapper class can only extend other Wrapper classes!");
       process.exit(1);
@@ -240,7 +256,7 @@ function processClass(part) {
 
   // parse class name
   const reflectionClassGetter = leftClass;
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0];
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Wrapper";
   if (fullyQualified in processedClasses) {
     return;
   }
@@ -268,7 +284,7 @@ function processClass(part) {
       let runner = 0;
       while (runner < argumentsToParse.length) {
         const argumentTypeIndex = brackets(argumentsToParse, runner, " ");
-        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses);
+        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses, shortClassNames);
         const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
         const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
         runner = separatorIndex + 1;
@@ -292,7 +308,7 @@ function processClass(part) {
       const lineToParse = isStatic ? child.parent.slice(6).trimStart() : child.parent;
 
       const returnTypeIndex = brackets(lineToParse, 0, " ");
-      const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses);
+      const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses, shortClassNames);
 
       const reflectionMethodGetter = lineToParse.slice(returnTypeIndex + 1).trimStart().split("(")[0];
       const argumentsToParse = lineToParse.split("(")[1].slice(0, -1).trim();
@@ -300,7 +316,7 @@ function processClass(part) {
       let runner = 0;
       while (runner < argumentsToParse.length) {
         const argumentTypeIndex = brackets(argumentsToParse, runner, " ");
-        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses);
+        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses, shortClassNames);
         const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
         const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
         runner = separatorIndex + 1;
@@ -336,7 +352,7 @@ function processClass(part) {
       const lineToParse = isStatic ? child.parent.slice(6).trimStart() : child.parent;
 
       const fieldTypeIndex = brackets(lineToParse, 0, " ");
-      const fieldTypeTree = typeTree(lineToParse.slice(0, fieldTypeIndex), additionalClasses);
+      const fieldTypeTree = typeTree(lineToParse.slice(0, fieldTypeIndex), additionalClasses, shortClassNames);
 
       const reflectionFieldGetter = lineToParse.slice(fieldTypeIndex + 1).trim();
       const fieldName = reflectionFieldGetter.split("/").slice(-1)[0];
@@ -404,7 +420,7 @@ function processClass(part) {
 function processInterface(part) {
   // parse class name
   const reflectionClassGetter = part.parent.slice(9).trimStart();
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Interface";
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
   if (fullyQualified in processedClasses) {
     return;
   }
@@ -435,7 +451,7 @@ function processInterface(part) {
 
       const lineToParse = child.parent;
       const returnTypeIndex = brackets(lineToParse, 0, " ");
-      const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses);
+      const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses, shortClassNames);
 
       const reflectionMethodGetter = lineToParse.slice(returnTypeIndex + 1).trimStart().split("(")[0];
       const argumentsToParse = lineToParse.split("(")[1].slice(0, -1).trim();
@@ -443,7 +459,7 @@ function processInterface(part) {
       let runner = 0;
       while (runner < argumentsToParse.length) {
         const argumentTypeIndex = brackets(argumentsToParse, runner, " ");
-        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses);
+        const argumentTypeTree = typeTree(argumentsToParse.slice(runner, argumentTypeIndex), additionalClasses, shortClassNames);
         const separatorIndex = brackets(argumentsToParse, argumentTypeIndex + 1, ",")
         const argumentName = argumentsToParse.slice(argumentTypeIndex + 1, separatorIndex);
         runner = separatorIndex + 1;
