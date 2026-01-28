@@ -273,14 +273,24 @@ function processClass(part) {
   const instanceFieldInitializers = [];
 
   const constructors = [];
-  const instanceMethodSignatures = { "unwrap()": 1, "unwrap(Class)": 1, "isInstanceOf(Class)": 1, "downcast(Class)": 1, "isNull()": 1 };
+  const instanceMethodSignatures = { "unwrap()": 1, "isInstanceOf(Class)": 1, "downcast(Class)": 1, "isNull()": 1 };
   instanceMethodSignatures[`equals(${fullyQualified})`] = 1;
   const staticMethodSignatures = { "inst(Object)": 1 };
 
+  let canExtend = false;
+  const extendedMethods = [];
+
   for (const child of part.children) {
-    if (child.parent.startsWith("<init>")) {
+    if (child.parent.includes("<init>")) {
       // constructor
-      const argumentsToParse = child.parent.split("(")[1].slice(0, -1).trim();
+
+      let lineToParse = child.parent;
+      const toExtend = lineToParse.startsWith("* ");
+      if (toExtend) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
+
+      const argumentsToParse = lineToParse.slice(6).trimStart().split("(")[1].slice(0, -1).trim();
       const arguments = [];
       let runner = 0;
       while (runner < argumentsToParse.length) {
@@ -296,17 +306,40 @@ function processClass(part) {
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
 
-      constructors.push(
-        `    public ${className}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
-        `        this(clazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
-        `    }`
-      );
+      if (toExtend) {
+        constructors.push(
+          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name)}) {\n` +
+          `        this(eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
+          `        R.RInstance rInstance = eClazz.inst(this.instance);\n` +
+          `        rInstance.fld("__wrapper").set(this);\n` +
+          `    }`
+        );
+        canExtend = true;
+      } else {
+        constructors.push(
+          `    public ${className}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
+          `        this(clazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
+          `    }`
+        );
+      }
 
     } else if (child.parent.endsWith(")")) {
       // method
-      const isStatic = child.parent.startsWith("static ");
+
+      let lineToParse = child.parent;
+      const toExtend = lineToParse.startsWith("* ");
+      if (toExtend) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
+      const isProtected = lineToParse.startsWith("protected ");
+      if (isProtected) {
+        lineToParse = lineToParse.slice(10).trimStart();
+      }
+      const isStatic = lineToParse.startsWith("static ");
+      if (isStatic) {
+        lineToParse = lineToParse.slice(6).trimStart();
+      }
       const signatures = isStatic ? staticMethodSignatures : instanceMethodSignatures;
-      const lineToParse = isStatic ? child.parent.slice(6).trimStart() : child.parent;
 
       const returnTypeIndex = brackets(lineToParse, 0, " ");
       const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses, shortClassNames);
@@ -324,7 +357,6 @@ function processClass(part) {
         while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
           runner ++;
         }
-
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
 
@@ -335,13 +367,25 @@ function processClass(part) {
       const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
       const methodParent = isStatic ? "clazz" : "clazz.inst(this.instance)";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
+      const access = isProtected ? "protected" : "public";
       const modifier = isStatic ? "static " : "";
-      const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+      const invoke = isProtected ? "invkProt" : "invk";
+      const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
       methodsArray.push(
-        `    public ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+        `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
         `        ${returnStatement}${buildWrapper(returnTypeTree).replace("%", exec)};\n` +
         `    }`
       );
+
+      if (toExtend) {
+        const returnNullStatement = returnTypeTree.type == "void" ? "                    return null;\n" : "";
+        const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+        extendedMethods.push(
+          `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a))})) {\n` +
+          `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
+          `                }`
+        );
+      }
 
     } else if (child.parent.includes(" extends ") || child.parent.split(" ").length == 1) {
       // class
@@ -389,10 +433,56 @@ function processClass(part) {
     }
   }
 
+  const rInstance = instanceFieldInitializers.length ? "        R.RInstance rInstance = clazz.inst(instance);\n" : "";
+
+  if (extendedMethods.length && !canExtend) {
+    console.log("Methods designed for extension present, yet no extension constructor defined!");
+    process.exit(1);
+  }
+
+  const buddy = canExtend ? `
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.modifier.Visibility;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.bind.annotation.AllArguments;
+import net.bytebuddy.implementation.bind.annotation.FieldValue;
+import net.bytebuddy.implementation.bind.annotation.Origin;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.SuperCall;
+import net.bytebuddy.matcher.ElementMatchers;
+import java.lang.reflect.Method;
+import java.util.concurrent.Callable;` : "";
+
+  const extender = (
+    canExtend ?
+      `    @SuppressWarnings("resource")\n` +
+      `    public static R.RClass extendUsing(Class<? extends ${className}> extendingWrapper) {\n` +
+      `        try {\n` +
+      `            return R.clz(new ByteBuddy().subclass(clazz.self()).name(extendingWrapper.getName() + "Impl").defineField("__wrapper", extendingWrapper, Visibility.PUBLIC)\n` +
+      `                                        .method(ElementMatchers.isVirtual().and(ElementMatchers.isFinalizer())).intercept(MethodDelegation.to(Interceptor.class)).make()\n` +
+      `                                        .load(clazz.self().getClassLoader()).getLoaded());\n` +
+      `        } catch (Exception e) {\n` +
+      `            throw new RuntimeException("Failed to extend class", e);\n` +
+      `        }\n` +
+      `    }\n` +
+      `\n` +
+      `    private static class Interceptor {\n` +
+      `        @SuppressWarnings("unused")\n` +
+      `        @RuntimeType\n` +
+      `        public static Object intercept(@Origin Method method, @FieldValue("__wrapper") ${className} wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall) throws Exception {\n` +
+      `            String methodName = method.getName();\n` +
+      `${extendedMethods.join("\n\n")}\n` +
+      `            return superCall.call();\n` +
+      `        }\n` +
+      `    }` :
+      ""
+  );
+
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
     `\n` +
     `import dev.gxlg.multiversion.R;\n` +
+    `${buddy}\n` +
     `\n` +
     `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
@@ -403,7 +493,7 @@ function processClass(part) {
     `\n` +
     `    protected ${className}(Object instance) {\n` +
     `        super(instance);\n` +
-    `        R.RInstance rInstance = clazz.inst(instance);\n` +
+    `${rInstance}` +
     `${instanceFieldInitializers.join("\n")}\n` +
     `    }\n` +
     `\n` +
@@ -414,6 +504,8 @@ function processClass(part) {
     `    }\n` +
     `\n` +
     `${staticMethods.join("\n\n")}\n` +
+    `\n` +
+    `${extender}\n` +
     `}`
   ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
@@ -437,7 +529,7 @@ function processInterface(part) {
   const instanceMethods = [];
   const instanceMethodCallers = [];
 
-  const instanceMethodSignatures = { "construct()": 1, "construct(Class)": 1 };
+  const instanceMethodSignatures = { "wrapper()": 1 };
 
   for (const child of part.children) {
     if (child.parent.startsWith("<init>")) {
@@ -484,7 +576,7 @@ function processInterface(part) {
       );
       const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       instanceMethodCallers.push(
-        `                if (${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) {\n` +
+        `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a))})) {\n` +
         `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
         `                }`
       );

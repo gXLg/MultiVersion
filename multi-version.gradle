@@ -1,3 +1,9 @@
+// add byte buddy for dynamic class extensions
+dependencies {
+    implementation "net.bytebuddy:byte-buddy:1.18.4"
+    include "net.bytebuddy:byte-buddy:1.18.4"
+}
+
 // pre-processor for MultiVersion
 interface InjExOps {
     @Inject

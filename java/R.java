@@ -66,6 +66,20 @@ public class R {
         return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
     }
 
+    public static boolean methodMatches(Method method, Object... types) {
+        Class<?>[] params = types(types);
+        Class<?>[] methodParams = method.getParameterTypes();
+        if (params.length != methodParams.length) {
+            return false;
+        }
+        for (int i = 0; i < params.length; i++) {
+            if (!methodParams[i].isAssignableFrom(params[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public interface RWrapperInterface<T extends RWrapper<T>> {
         T wrapper();
     }
@@ -185,6 +199,19 @@ public class R {
             }
         }
 
+        public Object invkProt(Object... args) {
+            try {
+                Method mthd = self();
+                boolean access = mthd.canAccess(inst);
+                mthd.setAccessible(true);
+                Object ret = mthd.invoke(inst, args);
+                mthd.setAccessible(access);
+                return ret;
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         public Method self() {
             if (method == null) {
                 method = lazyMethod.get();
@@ -292,20 +319,16 @@ public class R {
             return instance;
         }
 
-        public <T> T unwrap(Class<T> type) {
-            return type.cast(instance);
-        }
-
         public boolean isNull() {
             return instance == null;
         }
 
         public <T extends S> boolean isInstanceOf(Class<T> wrapperType) {
-          return wrapperType.isAssignableFrom(instance.getClass());
+            return ((RClass) clz(wrapperType).fld("clazz").get()).self().isAssignableFrom(instance.getClass());
         }
 
         public <T extends S> T downcast(Class<T> wrapperType) {
-            return wrapperType.cast(R.clz(wrapperType).mthd("inst", Object.class).invk(instance));
+            return wrapperType.cast(clz(wrapperType).mthd("inst", Object.class).invk(instance));
         }
 
         public boolean equals(S wrapper) {
