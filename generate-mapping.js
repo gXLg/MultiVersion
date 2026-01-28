@@ -308,7 +308,7 @@ function processClass(part) {
 
       if (toExtend) {
         constructors.push(
-          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name)}) {\n` +
+          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name).join("")}) {\n` +
           `        this(eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `        R.RInstance rInstance = eClazz.inst(this.instance);\n` +
           `        rInstance.fld("__wrapper").set(this);\n` +
@@ -378,12 +378,12 @@ function processClass(part) {
       );
 
       if (toExtend) {
-        const returnNullStatement = returnTypeTree.type == "void" ? "                    return null;\n" : "";
+        const returnNullStatement = returnTypeTree.type == "void" ? "                return null;\n" : "";
         const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
         extendedMethods.push(
-          `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a))})) {\n` +
-          `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
-          `                }`
+          `            if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
+          `                ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
+          `            }`
         );
       }
 
