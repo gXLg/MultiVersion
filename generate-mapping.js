@@ -309,11 +309,19 @@ function processClass(part) {
       if (toExtend) {
         constructors.push(
           `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name).join("")}) {\n` +
-          `        this(eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
-          `        R.RInstance rInstance = eClazz.inst(this.instance);\n` +
-          `        rInstance.fld("__wrapper").set(this);\n` +
+          `        this(eClazz, eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
+        if (!canExtend) {
+          // first time extension constrctor, add wrapper setter
+          constructors.push(
+            `    protected ${className}(R.RClass eClazz, Object instance) {\n` +
+            `        this(instance);\n` +
+            `        R.RInstance rInstance = eClazz.inst(this.instance);\n` +
+            `        rInstance.fld("__wrapper").set(this);\n` +
+            `    }`
+          );
+        }
         canExtend = true;
       } else {
         constructors.push(
