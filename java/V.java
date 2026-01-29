@@ -1,7 +1,5 @@
 package dev.gxlg.multiversion;
 
-import net.minecraft.SharedConstants;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,7 +11,7 @@ public class V {
         if (version != null) {
             return version;
         }
-        R.RClass constants = R.clz(SharedConstants.class);
+        R.RClass constants = R.clz("net.minecraft.class_155/net.minecraft.SharedConstants");
         Object gameVersion = constants.mthd("method_16673/getCurrentVersion").invk();
         try {
             R.RClass gameVersionClz = R.clz("net.minecraft.class_6489/com.mojang.bridge.game.GameVersion");

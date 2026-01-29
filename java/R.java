@@ -1,5 +1,16 @@
 package dev.gxlg.multiversion;
 
+import dev.gxlg.multiversion.gen.net.minecraft.client.gui.screens.inventory.BookViewScreenWrapper;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.modifier.Visibility;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.bind.annotation.AllArguments;
+import net.bytebuddy.implementation.bind.annotation.FieldValue;
+import net.bytebuddy.implementation.bind.annotation.Origin;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.SuperCall;
+import net.bytebuddy.matcher.ElementMatchers;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -8,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -78,6 +90,19 @@ public class R {
             }
         }
         return true;
+    }
+
+    @SuppressWarnings("resource")
+    public static <T extends RWrapper<?>> RClass extendWrapper(Class<T> superClass, Class<? extends T> extendingWrapper) {
+        try {
+            Class<?> superClz = ((RClass) clz(superClass).fld("clazz").get()).self();
+            Class<?> intercept = superClass.getDeclaredClasses()[0];
+            return R.clz(new ByteBuddy().subclass(superClz).name(extendingWrapper.getName() + "Impl").defineField("__wrapper", extendingWrapper, Visibility.PUBLIC)
+                                        .method(ElementMatchers.isVirtual().and(ElementMatchers.not(ElementMatchers.isFinalizer()))).intercept(MethodDelegation.to(intercept)).make()
+                                        .load(superClz.getClassLoader()).getLoaded());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extend class", e);
+        }
     }
 
     public interface RWrapperInterface<T extends RWrapper<T>> {
@@ -202,11 +227,8 @@ public class R {
         public Object invkProt(Object... args) {
             try {
                 Method mthd = self();
-                boolean access = mthd.canAccess(inst);
                 mthd.setAccessible(true);
-                Object ret = mthd.invoke(inst, args);
-                mthd.setAccessible(access);
-                return ret;
+                return mthd.invoke(inst, args);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -328,11 +350,26 @@ public class R {
         }
 
         public <T extends S> T downcast(Class<T> wrapperType) {
-            return wrapperType.cast(clz(wrapperType).mthd("inst", Object.class).invk(instance));
+            try {
+                return wrapperType.cast(((RClass) clz(wrapperType).fld("clazz").get()).inst(instance).fld("__wrapper").get());
+            } catch (Exception ignored) {
+                return wrapperType.cast(clz(wrapperType).mthd("inst", Object.class).invk(instance));
+            }
         }
 
         public boolean equals(S wrapper) {
             return Objects.equals(instance, wrapper.instance);
+        }
+
+        public static class Interceptor {
+            @RuntimeType
+            public static Object intercept(
+                @Origin Method method, @FieldValue(
+                    "__wrapper"
+                ) BookViewScreenWrapper wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall
+            ) throws Exception {
+                return superCall.call();
+            }
         }
     }
 }

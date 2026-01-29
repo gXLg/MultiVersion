@@ -277,7 +277,7 @@ function processClass(part) {
   instanceMethodSignatures[`equals(${fullyQualified})`] = 1;
   const staticMethodSignatures = { "inst(Object)": 1 };
 
-  let canExtend = false;
+  let extensionConstructor = false;
   const extendedMethods = [];
 
   for (const child of part.children) {
@@ -312,8 +312,8 @@ function processClass(part) {
           `        this(eClazz, eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
-        if (!canExtend) {
-          // first time extension constrctor, add wrapper setter
+        if (!extensionConstructor) {
+          // first time extension constructor, add wrapper setter
           constructors.push(
             `    protected ${className}(R.RClass eClazz, Object instance) {\n` +
             `        this(instance);\n` +
@@ -322,7 +322,7 @@ function processClass(part) {
             `    }`
           );
         }
-        canExtend = true;
+        extensionConstructor = true;
       } else {
         constructors.push(
           `    public ${className}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
@@ -443,54 +443,17 @@ function processClass(part) {
 
   const rInstance = instanceFieldInitializers.length ? "        R.RInstance rInstance = clazz.inst(instance);\n" : "";
 
-  if (extendedMethods.length && !canExtend) {
-    console.log("Methods designed for extension present, yet no extension constructor defined!");
-    process.exit(1);
-  }
-
-  const buddy = canExtend ? `
-import net.bytebuddy.ByteBuddy;
-import net.bytebuddy.description.modifier.Visibility;
-import net.bytebuddy.implementation.MethodDelegation;
-import net.bytebuddy.implementation.bind.annotation.AllArguments;
-import net.bytebuddy.implementation.bind.annotation.FieldValue;
-import net.bytebuddy.implementation.bind.annotation.Origin;
-import net.bytebuddy.implementation.bind.annotation.RuntimeType;
-import net.bytebuddy.implementation.bind.annotation.SuperCall;
-import net.bytebuddy.matcher.ElementMatchers;
-import java.lang.reflect.Method;
-import java.util.concurrent.Callable;` : "";
-
-  const extender = (
-    canExtend ?
-      `    @SuppressWarnings("resource")\n` +
-      `    public static R.RClass extendUsing(Class<? extends ${className}> extendingWrapper) {\n` +
-      `        try {\n` +
-      `            return R.clz(new ByteBuddy().subclass(clazz.self()).name(extendingWrapper.getName() + "Impl").defineField("__wrapper", extendingWrapper, Visibility.PUBLIC)\n` +
-      `                                        .method(ElementMatchers.isVirtual().and(ElementMatchers.isFinalizer())).intercept(MethodDelegation.to(Interceptor.class)).make()\n` +
-      `                                        .load(clazz.self().getClassLoader()).getLoaded());\n` +
-      `        } catch (Exception e) {\n` +
-      `            throw new RuntimeException("Failed to extend class", e);\n` +
-      `        }\n` +
-      `    }\n` +
-      `\n` +
-      `    private static class Interceptor {\n` +
-      `        @SuppressWarnings("unused")\n` +
-      `        @RuntimeType\n` +
-      `        public static Object intercept(@Origin Method method, @FieldValue("__wrapper") ${className} wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall) throws Exception {\n` +
-      `            String methodName = method.getName();\n` +
-      `${extendedMethods.join("\n\n")}\n` +
-      `            return superCall.call();\n` +
-      `        }\n` +
-      `    }` :
-      ""
-  );
-
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
     `\n` +
     `import dev.gxlg.multiversion.R;\n` +
-    `${buddy}\n` +
+    `import net.bytebuddy.implementation.bind.annotation.AllArguments;\n` +
+    `import net.bytebuddy.implementation.bind.annotation.FieldValue;\n` +
+    `import net.bytebuddy.implementation.bind.annotation.Origin;\n` +
+    `import net.bytebuddy.implementation.bind.annotation.RuntimeType;\n` +
+    `import net.bytebuddy.implementation.bind.annotation.SuperCall;\n` +
+    `import java.lang.reflect.Method;\n` +
+    `import java.util.concurrent.Callable;\n` +
     `\n` +
     `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
@@ -513,7 +476,15 @@ import java.util.concurrent.Callable;` : "";
     `\n` +
     `${staticMethods.join("\n\n")}\n` +
     `\n` +
-    `${extender}\n` +
+    `    public static class Interceptor {\n` +
+    `        @SuppressWarnings("unused")\n` +
+    `        @RuntimeType\n` +
+    `        public static Object intercept(@Origin Method method, @FieldValue("__wrapper") ${className} wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall) throws Exception {\n` +
+    `            String methodName = method.getName();\n` +
+    `${extendedMethods.join("\n\n")}\n` +
+    `            return ${extendingClassString ?? "R.Rwrapper"}.Interceptor.intercept(method, wrapper, args, superCall);\n` +
+    `        }\n` +
+    `    }\n` +
     `}`
   ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
