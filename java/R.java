@@ -366,7 +366,7 @@ public class R {
             public static Object intercept(
                 @Origin Method method, @FieldValue(
                     "__wrapper"
-                ) BookViewScreenWrapper wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall
+                ) RWrapper<?> wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall
             ) throws Exception {
                 return superCall.call();
             }

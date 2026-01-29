@@ -482,7 +482,7 @@ function processClass(part) {
     `        public static Object intercept(@Origin Method method, @FieldValue("__wrapper") ${className} wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall) throws Exception {\n` +
     `            String methodName = method.getName();\n` +
     `${extendedMethods.join("\n\n")}\n` +
-    `            return ${extendingClassString ?? "R.Rwrapper"}.Interceptor.intercept(method, wrapper, args, superCall);\n` +
+    `            return ${extendingClassString ?? "R.RWrapper"}.Interceptor.intercept(method, wrapper, args, superCall);\n` +
     `        }\n` +
     `    }\n` +
     `}`
