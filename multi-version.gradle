@@ -1,43 +1,4 @@
 // add byte buddy for dynamic class extensions
 dependencies {
-    implementation "net.bytebuddy:byte-buddy:1.18.4"
-    include "net.bytebuddy:byte-buddy:1.18.4"
-}
-
-// pre-processor for MultiVersion
-interface InjExOps {
-    @Inject
-    ExecOperations getExecOps()
-}
-
-tasks.register("preprocessMultiVersion") {
-    def inj = project.objects.newInstance(InjExOps)
-    doLast {
-        delete "prep"
-        copy {
-            from "src"
-            into "prep"
-        }
-        fileTree("prep") each { file ->
-            inj.execOps.exec {
-                commandLine "node", "./MultiVersion/preprocess.js", file
-            }
-        }
-        inj.execOps.exec {
-            commandLine "node", "./MultiVersion/finalize.js"
-        }
-
-        sourceSets.main.java.srcDirs = ["prep/main/java"]
-    }
-}
-
-tasks.register("cleanupMultiVersion") {
-    doLast {
-        sourceSets.main.java.srcDirs = ["src/main/java"]
-    }
-}
-
-compileJava {
-    dependsOn preprocessMultiVersion
-    finalizedBy cleanupMultiVersion
+    include(implementation "net.bytebuddy:byte-buddy:1.18.4")
 }
