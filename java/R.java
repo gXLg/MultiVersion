@@ -1,6 +1,5 @@
 package dev.gxlg.multiversion;
 
-import dev.gxlg.multiversion.gen.net.minecraft.client.gui.screens.inventory.BookViewScreenWrapper;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.description.modifier.Visibility;
 import net.bytebuddy.implementation.MethodDelegation;
@@ -224,11 +223,11 @@ public class R {
             }
         }
 
-        public Object invkProt(Object... args) {
+        public Object invkHidden(Object... args) {
             try {
-                Method mthd = self();
-                mthd.setAccessible(true);
-                return mthd.invoke(inst, args);
+                Method m = self();
+                m.setAccessible(true);
+                return m.invoke(inst, args);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -278,6 +277,16 @@ public class R {
         public Object get() {
             try {
                 return self().get(inst);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Object getHidden() {
+            try {
+                Field f = self();
+                f.setAccessible(true);
+                return f.get(inst);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

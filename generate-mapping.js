@@ -339,14 +339,56 @@ function processClass(part) {
       if (toExtend) {
         lineToParse = lineToParse.slice(2).trimStart();
       }
+      const toAccess = lineToParse.startsWith("+ ");
+      if (toAccess) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
       const isProtected = lineToParse.startsWith("protected ");
       if (isProtected) {
         lineToParse = lineToParse.slice(10).trimStart();
+      }
+      const isPrivate = lineToParse.startsWith("private ");
+      if (isPrivate) {
+        lineToParse = lineToParse.slice(8).trimStart();
       }
       const isStatic = lineToParse.startsWith("static ");
       if (isStatic) {
         lineToParse = lineToParse.slice(6).trimStart();
       }
+
+      if (isPrivate) {
+        if (isProtected) {
+          console.log("Can't mix 'protected' and 'private' methods!");
+          process.exit(1);
+        }
+        if (toExtend) {
+          console.log("Can't extend private methods!");
+          process.exit(1);
+        }
+        if (!toAccess) {
+          console.log("Private methods without an accessor don't make sense for wrappers!");
+          process.exit(1);
+        }
+      }
+
+      if (isStatic) {
+        if (isPrivate) {
+          console.log("Private static methods don't make sense for wrappers!");
+          process.exit(1);
+        }
+        if (toExtend) {
+          console.log("Can't extend static methods!");
+          process.exit(1);
+        }
+      }
+
+      if (toAccess) {
+        if (!isPrivate && !isProtected) {
+          console.log("Creating an accessor for public methods doesn't make sense for wrappers!");
+          process.exit(1);
+        }
+      }
+
       const signatures = isStatic ? staticMethodSignatures : instanceMethodSignatures;
 
       const returnTypeIndex = brackets(lineToParse, 0, " ");
@@ -375,16 +417,15 @@ function processClass(part) {
       const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
       const methodParent = isStatic ? "clazz" : "clazz.inst(this.instance)";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
-      const access = isProtected ? "protected" : "public";
+      const access = isProtected ? "protected" : (isPrivate ? "private" : "public");
       const modifier = isStatic ? "static " : "";
-      const invoke = isProtected ? "invkProt" : "invk";
+      const invoke = (isProtected || isPrivate) ? "invkHidden" : "invk";
       const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
       methodsArray.push(
         `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
         `        ${returnStatement}${buildWrapper(returnTypeTree).replace("%", exec)};\n` +
         `    }`
       );
-
       if (toExtend) {
         const returnNullStatement = returnTypeTree.type == "void" ? "                return null;\n" : "";
         const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
@@ -395,24 +436,43 @@ function processClass(part) {
         );
       }
 
+      if (toAccess) {
+        const rawMethodName = reflectionMethodGetter.split("/").slice(-1)[0] + "Accessible";
+        const accMethodName = getMethodName(rawMethodName, argumentsSignature, signatures);
+        methodsArray.push(
+          `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+          `        ${returnStatement}${methodName}(${arguments.map(a => a.name).join(", ")});\n` +
+          `    }`
+        );
+      }
+
     } else if (child.parent.includes(" extends ") || child.parent.split(" ").length == 1) {
       // class
       classes.push(child);
 
     } else {
       // field
-      const isStatic = child.parent.startsWith("static ");
-      const lineToParse = isStatic ? child.parent.slice(6).trimStart() : child.parent;
+
+      let lineToParse = child.parent;
+      const toAccess = lineToParse.startsWith("+ ");
+      if (toAccess) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
+      const isStatic = lineToParse.startsWith("static ");
+      if (isStatic) {
+        lineToParse = lineToParse.slice(7).trimStart();
+      }
 
       const fieldTypeIndex = brackets(lineToParse, 0, " ");
       const fieldTypeTree = typeTree(lineToParse.slice(0, fieldTypeIndex), additionalClasses, shortClassNames);
 
       const reflectionFieldGetter = lineToParse.slice(fieldTypeIndex + 1).trim();
-      const fieldName = reflectionFieldGetter.split("/").slice(-1)[0];
+      const fieldName = reflectionFieldGetter.split("/").slice(-1)[0] + (toAccess ? "Accessible" : "") + (isStatic ? "" : "Field");
+      const getter = toAccess ? "getHidden" : "get";
 
       if (isStatic) {
         const fieldMethodName = getMethodName(fieldName, [], staticMethodSignatures);
-        const exec = `clazz.fld("${reflectionFieldGetter}").get()`;
+        const exec = `clazz.fld("${reflectionFieldGetter}").${getter}()`;
         staticMethods.push(
           `    public static ${buildTypeString(fieldTypeTree)} ${fieldMethodName}() {\n` +
           `        return ${buildWrapper(fieldTypeTree).replace("%", exec)};\n` +
@@ -425,18 +485,21 @@ function processClass(part) {
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
         const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
-        const setterMethodName = getMethodName("set" + capitalName, [buildSignatureType(fieldTypeTree)], instanceMethodSignatures);
         const fieldTypeString = buildTypeString(fieldTypeTree);
 
         instanceMethods.push(
           `    public ${fieldTypeString} ${getterMethodName}() {\n` +
-          `        return ${buildWrapper(fieldTypeTree).replace("%", "this." + fieldName + ".get()")};\n` +
-          `    }\n` +
-          `    \n` +
-          `    public void ${setterMethodName}(${fieldTypeString} value) {\n` +
-          `        this.${fieldName}.set(${buildUnwrapper(fieldTypeTree).replace("%", "value")});\n` +
+          `        return ${buildWrapper(fieldTypeTree).replace("%", "this." + fieldName + "." + getter + "()")};\n` +
           `    }`
         );
+        if (!toAccess) {
+          const setterMethodName = getMethodName("set" + capitalName, [buildSignatureType(fieldTypeTree)], instanceMethodSignatures);
+          instanceMethods.push(
+            `    public void ${setterMethodName}(${fieldTypeString} value) {\n` +
+            `        this.${fieldName}.set(${buildUnwrapper(fieldTypeTree).replace("%", "value")});\n` +
+            `    }`
+          );
+        }
       }
     }
   }
