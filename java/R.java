@@ -350,6 +350,10 @@ public class R {
             return instance;
         }
 
+        public <T> T unwrap(Class<T> clz) {
+            return clz.cast(instance);
+        }
+
         public boolean isNull() {
             return instance == null;
         }
