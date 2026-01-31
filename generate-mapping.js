@@ -92,7 +92,7 @@ function buildClassGetter(tree) {
   if (type == "wrapper") {
     return main + ".clazz";
   }
-  return main + ".class";
+  return main.replaceAll("$", ".") + ".class";
 }
 
 function buildSignatureType(tree) {
