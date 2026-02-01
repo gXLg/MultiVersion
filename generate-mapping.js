@@ -522,7 +522,8 @@ function processClass(part) {
         );
 
       } else {
-        instanceFields.push(`    private final R.RField ${fieldName};`);
+        const rFieldType = toAccess ? "RDeclField" : "RField";
+        instanceFields.push(`    private final R.${rFieldType} ${fieldName};`);
         instanceFieldInitializers.push(`        this.${fieldName} = rInstance.${getter}("${reflectionFieldGetter}");`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
