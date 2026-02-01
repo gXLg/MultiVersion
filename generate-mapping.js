@@ -317,8 +317,7 @@ function processClass(part) {
           constructors.push(
             `    protected ${className}(R.RClass eClazz, Object instance) {\n` +
             `        this(instance);\n` +
-            `        R.RInstance rInstance = eClazz.inst(this.instance);\n` +
-            `        rInstance.fld("__wrapper").set(this);\n` +
+            `        eClazz.inst(this.instance).fld("__wrapper").set(this);\n` +
             `    }`
           );
         }

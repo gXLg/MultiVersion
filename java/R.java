@@ -220,9 +220,9 @@ public class R {
             this.inst = inst;
             this.lazyMethod = () -> {
                 String[] methods = names.split("/");
-                Class<?>[] params = types(types);
                 return cache(
                     methodsCache, clz, methods, () -> {
+                        Class<?>[] params = types(types);
                         for (String method : methods) {
                             try {
                                 return clz.getMethod(method, params);
@@ -262,9 +262,9 @@ public class R {
             this.inst = inst;
             this.lazyMethod = () -> {
                 String[] methods = names.split("/");
-                Class<?>[] params = types(types);
                 return cache(
                     methodsCache, clz, methods, () -> {
+                        Class<?>[] params = types(types);
                         for (String method : methods) {
                             try {
                                 return clz.getDeclaredMethod(method, params);
