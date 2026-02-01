@@ -317,7 +317,7 @@ function processClass(part) {
           constructors.push(
             `    protected ${className}(R.RClass eClazz, Object instance) {\n` +
             `        this(instance);\n` +
-            `        eClazz.inst(this.instance).fld("__wrapper").set(this);\n` +
+            `        eClazz.inst(this.instance).fld("__wrapper", ${className}.class).set(this);\n` +
             `    }`
           );
         }
@@ -431,11 +431,11 @@ function processClass(part) {
       const getter = (isProtected || isPrivate || toExtend) ? "dmthd" : "mthd";
       let body;
       if (isNullable) {
-        const exec = `Object __return = ${methodParent}.${getter}("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
+        const exec = `Object __return = ${methodParent}.${getter}("${reflectionMethodGetter}", ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
         const returnStatement = `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")}`;
         body = exec + returnStatement;
       } else {
-        const exec = `${methodParent}.${getter}("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+        const exec = `${methodParent}.${getter}("${reflectionMethodGetter}", ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
         body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
       }
       const superCall = toExtend ? `        if (this instanceof ${className} && this.getClass() != ${className}.class) superCall++;\n` : "";
@@ -508,7 +508,7 @@ function processClass(part) {
 
       if (isStatic) {
         const fieldMethodName = getMethodName(fieldName, [], staticMethodSignatures);
-        const exec = `clazz.${getter}("${reflectionFieldGetter}").get()`;
+        const exec = `clazz.${getter}("${reflectionFieldGetter}", ${buildClassGetter(fieldTypeTree)}).get()`;
         let body;
         if (isNullable) {
           body = `Object __return = ${exec};\n        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")}`;
@@ -525,7 +525,7 @@ function processClass(part) {
       } else {
         const rFieldType = toAccess ? "RDeclField" : "RField";
         instanceFields.push(`    private final R.${rFieldType} ${fieldName};`);
-        instanceFieldInitializers.push(`        this.${fieldName} = rInstance.${getter}("${reflectionFieldGetter}");`);
+        instanceFieldInitializers.push(`        this.${fieldName} = rInstance.${getter}("${reflectionFieldGetter}", ${buildClassGetter(fieldTypeTree)});`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
         const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);

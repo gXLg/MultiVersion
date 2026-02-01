@@ -77,10 +77,14 @@ public class R {
         return wrap -> Stream.of(wrap).map(unwrapperT).toArray();
     }
 
-    public static boolean methodMatches(Method method, Object... types) {
+    public static boolean methodMatches(Method method, Object returnType, Object... types) {
+        Class<?> type = type(returnType);
         Class<?>[] params = types(types);
         Class<?>[] methodParams = method.getParameterTypes();
         if (params.length != methodParams.length) {
+            return false;
+        }
+        if (!method.getReturnType().isAssignableFrom(type)) {
             return false;
         }
         for (int i = 0; i < params.length; i++) {
@@ -91,10 +95,15 @@ public class R {
         return true;
     }
 
+    public static boolean fieldMatches(Field field, Object fieldType) {
+        Class<?> type = type(fieldType);
+        return field.getType().isAssignableFrom(type);
+    }
+
     @SuppressWarnings("resource")
     public static <T extends RWrapper<?>> RClass extendWrapper(Class<T> superClass, Class<? extends T> extendingWrapper) {
         try {
-            Class<?> superClz = ((RClass) clz(superClass).fld("clazz").get()).self();
+            Class<?> superClz = ((RClass) clz(superClass).fld("clazz", RClass.class).get()).self();
             Class<?> intercept = superClass.getDeclaredClasses()[0];
             return R.clz(new ByteBuddy().subclass(superClz).name(extendingWrapper.getName() + "Impl").defineField("__wrapper", extendingWrapper, Visibility.PUBLIC)
                                         .method(ElementMatchers.isVirtual().and(ElementMatchers.not(ElementMatchers.isFinalizer()))).intercept(MethodDelegation.to(intercept)).make()
@@ -150,20 +159,20 @@ public class R {
             return new RDeclConstructor(self(), types);
         }
 
-        public RField fld(String names) {
-            return new RField(null, names, self());
+        public RField fld(String names, Object type) {
+            return new RField(null, names, self(), type);
         }
 
-        public RDeclField dfld(String names) {
-            return new RDeclField(null, names, self());
+        public RDeclField dfld(String names, Object type) {
+            return new RDeclField(null, names, self(), type);
         }
 
-        public RMethod mthd(String names, Object... types) {
-            return new RMethod(null, names, self(), types);
+        public RMethod mthd(String names, Object returnType, Object... types) {
+            return new RMethod(null, names, self(), returnType, types);
         }
 
-        public RDeclMethod dmthd(String names, Object... types) {
-            return new RDeclMethod(null, names, self(), types);
+        public RDeclMethod dmthd(String names, Object returnType, Object... types) {
+            return new RDeclMethod(null, names, self(), returnType, types);
         }
 
         public Class<?> self() {
@@ -188,20 +197,20 @@ public class R {
             this.inst = inst;
         }
 
-        public RField fld(String names) {
-            return new RField(inst, names, clz);
+        public RField fld(String names, Object type) {
+            return new RField(inst, names, clz, type);
         }
 
-        public RDeclField dfld(String names) {
-            return new RDeclField(inst, names, clz);
+        public RDeclField dfld(String names, Object type) {
+            return new RDeclField(inst, names, clz, type);
         }
 
-        public RMethod mthd(String names, Object... types) {
-            return new RMethod(inst, names, clz, types);
+        public RMethod mthd(String names, Object returnType, Object... types) {
+            return new RMethod(inst, names, clz, returnType, types);
         }
 
-        public RDeclMethod dmthd(String names, Object... types) {
-            return new RDeclMethod(inst, names, clz, types);
+        public RDeclMethod dmthd(String names, Object returnType, Object... types) {
+            return new RDeclMethod(inst, names, clz, returnType, types);
         }
 
         public Object self() {
@@ -216,20 +225,18 @@ public class R {
 
         private Method method = null;
 
-        public RMethod(Object inst, String names, Class<?> clz, Object[] types) {
+        public RMethod(Object inst, String names, Class<?> clz, Object returnType, Object[] types) {
             this.inst = inst;
             this.lazyMethod = () -> {
-                String[] methods = names.split("/");
+                String[] methodNames = names.split("/");
                 return cache(
-                    methodsCache, clz, methods, () -> {
-                        Class<?>[] params = types(types);
-                        for (String method : methods) {
-                            try {
-                                return clz.getMethod(method, params);
-                            } catch (NoSuchMethodException ignored) {
+                    methodsCache, clz, methodNames, () -> {
+                        for (Method method : clz.getMethods()) {
+                            if (Arrays.stream(methodNames).anyMatch(n -> method.getName().equals(n)) && methodMatches(method, returnType, types)) {
+                                return method;
                             }
                         }
-                        throw new RuntimeException("Method not found from " + Arrays.toString(methods) + " for class " + clz.getName() + " with params " + Arrays.toString(params));
+                        throw new RuntimeException("Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)));
                     }
                 );
             };
@@ -258,20 +265,18 @@ public class R {
 
         private Method method = null;
 
-        public RDeclMethod(Object inst, String names, Class<?> clz, Object[] types) {
+        public RDeclMethod(Object inst, String names, Class<?> clz, Object returnType, Object[] types) {
             this.inst = inst;
             this.lazyMethod = () -> {
-                String[] methods = names.split("/");
+                String[] methodNames = names.split("/");
                 return cache(
-                    methodsCache, clz, methods, () -> {
-                        Class<?>[] params = types(types);
-                        for (String method : methods) {
-                            try {
-                                return clz.getDeclaredMethod(method, params);
-                            } catch (NoSuchMethodException ignored) {
+                    methodsCache, clz, methodNames, () -> {
+                        for (Method method : clz.getDeclaredMethods()) {
+                            if (Arrays.stream(methodNames).anyMatch(n -> method.getName().equals(n)) && methodMatches(method, returnType, types)) {
+                                return method;
                             }
                         }
-                        throw new RuntimeException("Method not found from " + Arrays.toString(methods) + " for class " + clz.getName() + " with params " + Arrays.toString(params));
+                        throw new RuntimeException("Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)));
                     }
                 );
             };
@@ -301,19 +306,18 @@ public class R {
 
         private Field fld = null;
 
-        public RField(Object inst, String names, Class<?> clz) {
+        public RField(Object inst, String names, Class<?> clz, Object fieldType) {
             this.inst = inst;
             this.lazyField = () -> {
-                String[] fields = names.split("/");
+                String[] fieldNames = names.split("/");
                 return cache(
-                    fieldsCache, clz, fields, () -> {
-                        for (String field : fields) {
-                            try {
-                                return clz.getField(field);
-                            } catch (NoSuchFieldException ignored) {
+                    fieldsCache, clz, fieldNames, () -> {
+                        for (Field field : clz.getFields()) {
+                            if (Arrays.stream(fieldNames).anyMatch(n -> field.getName().equals(n)) && fieldMatches(field, fieldType)) {
+                                return field;
                             }
                         }
-                        throw new RuntimeException("Field not found from " + Arrays.toString(fields) + " for class " + clz.getName());
+                        throw new RuntimeException("Field not found from " + Arrays.toString(fieldNames) + " for class " + clz.getName() + " of type " + type(fieldType));
                     }
                 );
             };
@@ -335,16 +339,6 @@ public class R {
             }
         }
 
-        public Object getHidden() {
-            try {
-                Field f = self();
-                f.setAccessible(true);
-                return f.get(inst);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
         public Field self() {
             if (fld == null) {
                 fld = lazyField.get();
@@ -360,19 +354,18 @@ public class R {
 
         private Field fld = null;
 
-        public RDeclField(Object inst, String names, Class<?> clz) {
+        public RDeclField(Object inst, String names, Class<?> clz, Object fieldType) {
             this.inst = inst;
             this.lazyField = () -> {
-                String[] fields = names.split("/");
+                String[] fieldNames = names.split("/");
                 return cache(
-                    fieldsCache, clz, fields, () -> {
-                        for (String field : fields) {
-                            try {
-                                return clz.getDeclaredField(field);
-                            } catch (NoSuchFieldException ignored) {
+                    fieldsCache, clz, fieldNames, () -> {
+                        for (Field field : clz.getDeclaredFields()) {
+                            if (Arrays.stream(fieldNames).anyMatch(n -> field.getName().equals(n)) && fieldMatches(field, fieldType)) {
+                                return field;
                             }
                         }
-                        throw new RuntimeException("Field not found from " + Arrays.toString(fields) + " for class " + clz.getName());
+                        throw new RuntimeException("Field not found from " + Arrays.toString(fieldNames) + " for class " + clz.getName() + " of type " + type(fieldType));
                     }
                 );
             };
@@ -493,12 +486,12 @@ public class R {
         }
 
         public <T extends S> boolean isInstanceOf(Class<T> wrapperType) {
-            return ((RClass) clz(wrapperType).fld("clazz").get()).self().isAssignableFrom(instance.getClass());
+            return ((RClass) clz(wrapperType).fld("clazz", RClass.class).get()).self().isAssignableFrom(instance.getClass());
         }
 
         public <T extends S> T downcast(Class<T> wrapperType) {
             try {
-                return wrapperType.cast(((RClass) clz(wrapperType).fld("clazz").get()).inst(instance).fld("__wrapper").get());
+                return wrapperType.cast(((RClass) clz(wrapperType).fld("clazz", RClass.class).get()).inst(instance).fld("__wrapper", RWrapper.class).get());
             } catch (Exception ignored) {
                 return wrapperType.cast(clz(wrapperType).mthd("inst", Object.class).invk(instance));
             }
