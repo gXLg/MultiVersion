@@ -493,7 +493,7 @@ public class R {
             try {
                 return wrapperType.cast(((RClass) clz(wrapperType).fld("clazz", RClass.class).get()).inst(instance).fld("__wrapper", RWrapper.class).get());
             } catch (Exception ignored) {
-                return wrapperType.cast(clz(wrapperType).mthd("inst", Object.class).invk(instance));
+                return wrapperType.cast(clz(wrapperType).mthd("inst", RWrapper.class, Object.class).invk(instance));
             }
         }
 
