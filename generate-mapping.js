@@ -661,8 +661,8 @@ function processInterface(part) {
         `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
       );
 
-      const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
-      const exec = `${assignStatement}wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+      const assignStatement = returnTypeTree.type == "void" ? "" : `${buildTypeString(returnTypeTree)} __return = `;
+      const exec = `${assignStatement}this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       const returnStatement = returnTypeTree.type == "void" ? "null" : `__return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
       instanceMethodCallers.push(
         `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
