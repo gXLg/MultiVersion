@@ -437,7 +437,7 @@ function processClass(part) {
         body = exec + returnStatement;
       } else {
         const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
-        body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", "exec")}`;
+        body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
       }
       methodsArray.push(
         `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
