@@ -445,13 +445,18 @@ function processClass(part) {
         `    }`
       );
       if (toExtend) {
-        const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
-        const exec = `${assignStatement}wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
-        const returnStatement = returnTypeTree.type == "void" ? "null" : `__return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
+        let body;
+        if (isNullable) {
+          const exec = `${buildTypeString(returnTypeTree)} __return = wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")});\n`;
+          const returnStatement = `                return __return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`);
+          body = exec + returnStatement;
+        } else {
+          const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+          body = returnTypeTree.type == "void" ? `${exec};\n                return null` : `return ${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
+        }
         extendedMethods.push(
           `            if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
-          `                ${exec};\n` +
-          `                return ${returnStatement};\n` +
+          `                ${body};\n` +
           `            }`
         );
       }
@@ -661,12 +666,10 @@ function processInterface(part) {
         `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
       );
 
-      const assignStatement = returnTypeTree.type == "void" ? "" : `${buildTypeString(returnTypeTree)} __return = `;
-      const exec = `${assignStatement}this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
-      const returnStatement = returnTypeTree.type == "void" ? "null" : `__return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
+      const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+      const returnStatement = returnTypeTree.type == "void" ? "null" : `${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
       instanceMethodCallers.push(
         `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
-        `                    ${exec};\n` +
         `                    return ${returnStatement};\n` +
         `                }`
       );
@@ -690,14 +693,12 @@ function processInterface(part) {
     `import java.lang.reflect.Proxy;\n` +
     `\n` +
     `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}> {\n` +
-    `    R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
-    `\n` +
     `${instanceMethods.join("\n\n")}\n` +
     `\n` +
     `    @Override\n` +
     `    default ${wrapperClassName} wrapper() {\n` +
     `        return ${wrapperClassName}.inst(Proxy.newProxyInstance(\n` +
-    `            Thread.currentThread().getContextClassLoader(), new Class[]{ clazz.self() }, (proxy, method, args) -> {\n` +
+    `            Thread.currentThread().getContextClassLoader(), new Class[]{ ${wrapperClassName}.clazz.self() }, (proxy, method, args) -> {\n` +
     `                String methodName = method.getName();\n` +
     `${instanceMethodCallers.join("\n\n")}\n` +
     `                return method.invoke(proxy, args);\n` +
