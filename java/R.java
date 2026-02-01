@@ -84,7 +84,7 @@ public class R {
         if (params.length != methodParams.length) {
             return false;
         }
-        if (!method.getReturnType().isAssignableFrom(type)) {
+        if (!type.isAssignableFrom(method.getReturnType())) {
             return false;
         }
         for (int i = 0; i < params.length; i++) {
@@ -97,7 +97,7 @@ public class R {
 
     public static boolean fieldMatches(Field field, Object fieldType) {
         Class<?> type = type(fieldType);
-        return field.getType().isAssignableFrom(type);
+        return field.getType() == type;
     }
 
     @SuppressWarnings("resource")
