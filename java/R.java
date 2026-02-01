@@ -343,6 +343,9 @@ public class R {
         protected final Object instance;
 
         protected RWrapper(Object instance) {
+            if (instance == null) {
+                throw new RuntimeException("Cannot wrap null instance");
+            }
             this.instance = instance;
         }
 
@@ -352,10 +355,6 @@ public class R {
 
         public <T> T unwrap(Class<T> clz) {
             return clz.cast(instance);
-        }
-
-        public boolean isNull() {
-            return instance == null;
         }
 
         public <T extends S> boolean isInstanceOf(Class<T> wrapperType) {
@@ -371,6 +370,9 @@ public class R {
         }
 
         public boolean equals(S wrapper) {
+            if (wrapper == null) {
+                return false;
+            }
             return Objects.equals(instance, wrapper.instance);
         }
 

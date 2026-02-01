@@ -273,7 +273,7 @@ function processClass(part) {
   const instanceFieldInitializers = [];
 
   const constructors = [];
-  const instanceMethodSignatures = { "unwrap()": 1, "isInstanceOf(Class)": 1, "downcast(Class)": 1, "isNull()": 1 };
+  const instanceMethodSignatures = { "unwrap()": 1, "unwrap(Class)": 1, "isInstanceOf(Class)": 1, "downcast(Class)": 1 };
   instanceMethodSignatures[`equals(${fullyQualified})`] = 1;
   const staticMethodSignatures = { "inst(Object)": 1 };
 
@@ -414,24 +414,28 @@ function processClass(part) {
       const argumentsSignature = arguments.map(a => buildSignatureType(a.type));
       const methodName = getMethodName(rawMethodName, argumentsSignature, signatures);
 
-      const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
+      const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
       const methodParent = isStatic ? "clazz" : "clazz.inst(this.instance)";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
       const access = isProtected ? "protected" : (isPrivate ? "private" : "public");
       const modifier = isStatic ? "static " : "";
       const invoke = (isProtected || isPrivate) ? "invkHidden" : "invk";
-      const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+      const exec = `${assignStatement}${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+      const returnStatement = returnTypeTree.type == "void" ? "" : `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")};\n`;
       methodsArray.push(
         `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
-        `        ${returnStatement}${buildWrapper(returnTypeTree).replace("%", exec)};\n` +
+        `        ${exec};\n` +
+        `${returnStatement}` +
         `    }`
       );
       if (toExtend) {
-        const returnNullStatement = returnTypeTree.type == "void" ? "                return null;\n" : "";
-        const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+        const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
+        const exec = `${assignStatement}wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+        const returnStatement = returnTypeTree.type == "void" ? "null" : `__return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
         extendedMethods.push(
           `            if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
-          `                ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
+          `                ${exec};\n` +
+          `                return ${returnStatement};\n` +
           `            }`
         );
       }
@@ -439,6 +443,7 @@ function processClass(part) {
       if (toAccess) {
         const rawMethodName = reflectionMethodGetter.split("/").slice(-1)[0] + "Accessible";
         const accMethodName = getMethodName(rawMethodName, argumentsSignature, signatures);
+        const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
         methodsArray.push(
           `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
           `        ${returnStatement}${methodName}(${arguments.map(a => a.name).join(", ")});\n` +
@@ -475,7 +480,8 @@ function processClass(part) {
         const exec = `clazz.fld("${reflectionFieldGetter}").${getter}()`;
         staticMethods.push(
           `    public static ${buildTypeString(fieldTypeTree)} ${fieldMethodName}() {\n` +
-          `        return ${buildWrapper(fieldTypeTree).replace("%", exec)};\n` +
+          `        Object __return = ${exec};\n` +
+          `        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")};\n` +
           `    }`
         );
 
@@ -534,7 +540,7 @@ function processClass(part) {
     `${instanceMethods.join("\n\n")}\n` +
     `\n` +
     `    public static ${className} inst(Object instance) {\n` +
-    `        return new ${className}(instance);\n` +
+    `        return instance == null ? null : new ${className}(instance);\n` +
     `    }\n` +
     `\n` +
     `${staticMethods.join("\n\n")}\n` +
@@ -611,15 +617,17 @@ function processInterface(part) {
       const argumentsSignature = arguments.map(a => buildSignatureType(a.type));
       const methodName = getMethodName(rawMethodName, argumentsSignature, instanceMethodSignatures);
 
-      const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
-      const returnNullStatement = returnTypeTree.type == "void" ? "                    return null;\n" : "";
       instanceMethods.push(
         `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
       );
-      const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+
+      const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
+      const exec = `${assignStatement}wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
+      const returnStatement = returnTypeTree.type == "void" ? "null" : `__return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
       instanceMethodCallers.push(
         `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
-        `                    ${returnStatement}${buildUnwrapper(returnTypeTree).replace("%", exec)};\n${returnNullStatement}` +
+        `                    ${exec};\n` +
+        `                    return ${returnStatement};\n` +
         `                }`
       );
 
