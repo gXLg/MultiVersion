@@ -456,7 +456,7 @@ function processClass(part) {
           body = returnTypeTree.type == "void" ? `${exec};\n                return null` : `return ${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
         }
         extendedMethods.push(
-          `            if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
+          `            if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method, ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
           `                ${body};\n` +
           `            }`
         );
@@ -677,7 +677,7 @@ function processInterface(part) {
       const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       const body = returnTypeTree.type == "void" ? `${exec};\n                    return null` : `return ${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
       instanceMethodCallers.push(
-        `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
+        `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method, ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
         `                    ${body};\n` +
         `                }`
       );
