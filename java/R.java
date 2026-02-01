@@ -97,7 +97,7 @@ public class R {
 
     public static boolean fieldMatches(Field field, Object fieldType) {
         Class<?> type = type(fieldType);
-        return field.getType() == type;
+        return type.isAssignableFrom(field.getType());
     }
 
     @SuppressWarnings("resource")
@@ -236,7 +236,9 @@ public class R {
                                 return method;
                             }
                         }
-                        throw new RuntimeException("Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)) + " and return type " + type(returnType));
+                        throw new RuntimeException(
+                            "Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)) + " and return type " +
+                            type(returnType));
                     }
                 );
             };
@@ -276,7 +278,9 @@ public class R {
                                 return method;
                             }
                         }
-                        throw new RuntimeException("Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)) + " and return type " + type(returnType));
+                        throw new RuntimeException(
+                            "Method not found from " + Arrays.toString(methodNames) + " for class " + clz.getName() + " with params " + Arrays.toString(types(types)) + " and return type " +
+                            type(returnType));
                     }
                 );
             };
