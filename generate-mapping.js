@@ -438,8 +438,10 @@ function processClass(part) {
         const exec = `${methodParent}.${getter}("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
         body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
       }
+      const superCall = toExtend ? `        if (this instanceof ${className} && this.getClass() != ${className}.class) superCall++;\n` : "";
       methodsArray.push(
         `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+        `${superCall}`  +
         `        ${body};\n` +
         `    }`
       );
@@ -572,6 +574,8 @@ function processClass(part) {
     `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
+    `    private int superCall = 0;\n` +
+    `\n` +
     `${instanceFields.join("\n\n")}\n` +
     `\n` +
     `${constructors.join("\n\n")}\n` +
@@ -594,13 +598,17 @@ function processClass(part) {
     `        @SuppressWarnings("unused")\n` +
     `        @RuntimeType\n` +
     `        public static Object intercept(@Origin Method method, @FieldValue("__wrapper") ${className} wrapper, @AllArguments Object[] args, @SuperCall Callable<?> superCall) throws Exception {\n` +
+    `            if (wrapper.superCall > 0) {\n` +
+    `                wrapper.superCall--;\n` +
+    `                return superCall.call();\n` +
+    `            }\n` +
     `            String methodName = method.getName();\n` +
     `${extendedMethods.join("\n\n")}\n` +
     `            return ${extendingClassString ?? "R.RWrapper"}.Interceptor.intercept(method, wrapper, args, superCall);\n` +
     `        }\n` +
     `    }\n` +
     `}`
-  ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
+  ).replace(/\n[ ]*\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
 
 function processInterface(part) {
@@ -706,7 +714,7 @@ function processInterface(part) {
     `        ));\n` +
     `    }\n` +
     `}`
-  ).replace(/\n\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
+  ).replace(/\n[ ]*\n+/g, "\n\n").replace(/\n+([ ]*\})/g, "\n$1");
 }
 
 while (classes.length) {
