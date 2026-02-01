@@ -448,7 +448,7 @@ function processClass(part) {
         let body;
         if (isNullable) {
           const exec = `${buildTypeString(returnTypeTree)} __return = wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")});\n`;
-          const returnStatement = `                return __return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`);
+          const returnStatement = `                return __return == null ? null : ${buildUnwrapper(returnTypeTree).replace("%", "__return")}`;
           body = exec + returnStatement;
         } else {
           const exec = `wrapper.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
