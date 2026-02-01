@@ -309,7 +309,7 @@ function processClass(part) {
       if (toExtend) {
         constructors.push(
           `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name).join("")}) {\n` +
-          `        this(eClazz, eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
+          `        this(eClazz, eClazz.dconstr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
         if (!extensionConstructor) {
@@ -429,14 +429,14 @@ function processClass(part) {
       const methodsArray = isStatic ? staticMethods : instanceMethods;
       const access = isProtected ? "protected" : (isPrivate ? "private" : "public");
       const modifier = isStatic ? "static " : "";
-      const invoke = (isProtected || isPrivate) ? "invkHidden" : "invk";
+      const getter = (isProtected || isPrivate || toExtend) ? "dmthd" : "mthd";
       let body;
       if (isNullable) {
-        const exec = `Object __return = ${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
+        const exec = `Object __return = ${methodParent}.${getter}("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
         const returnStatement = `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")}`;
         body = exec + returnStatement;
       } else {
-        const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+        const exec = `${methodParent}.${getter}("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
         body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
       }
       methodsArray.push(
@@ -503,11 +503,11 @@ function processClass(part) {
 
       const reflectionFieldGetter = lineToParse.slice(fieldTypeIndex + 1).trim();
       const fieldName = reflectionFieldGetter.split("/").slice(-1)[0] + (toAccess ? "Accessible" : "") + (isStatic ? "" : "Field");
-      const getter = toAccess ? "getHidden" : "get";
+      const getter = toAccess ? "dfld" : "fld";
 
       if (isStatic) {
         const fieldMethodName = getMethodName(fieldName, [], staticMethodSignatures);
-        const exec = `clazz.fld("${reflectionFieldGetter}").${getter}()`;
+        const exec = `clazz.${getter}("${reflectionFieldGetter}").get()`;
         let body;
         if (isNullable) {
           body = `Object __return = ${exec};\n        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")}`;
@@ -523,13 +523,13 @@ function processClass(part) {
 
       } else {
         instanceFields.push(`    private final R.RField ${fieldName};`);
-        instanceFieldInitializers.push(`        this.${fieldName} = rInstance.fld("${reflectionFieldGetter}");`);
+        instanceFieldInitializers.push(`        this.${fieldName} = rInstance.${getter}("${reflectionFieldGetter}");`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
         const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
         const fieldTypeString = buildTypeString(fieldTypeTree);
 
-        const exec = `this.${fieldName}.${getter}()`;
+        const exec = `this.${fieldName}.get()`;
         let body;
         if (isNullable) {
           body = `Object __return = ${exec};\n        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")}`;

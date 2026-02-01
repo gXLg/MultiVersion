@@ -146,12 +146,24 @@ public class R {
             return new RConstructor(self(), types);
         }
 
+        public RDeclConstructor dconstr(Object... types) {
+            return new RDeclConstructor(self(), types);
+        }
+
         public RField fld(String names) {
             return new RField(null, names, self());
         }
 
+        public RDeclField dfld(String names) {
+            return new RDeclField(null, names, self());
+        }
+
         public RMethod mthd(String names, Object... types) {
             return new RMethod(null, names, self(), types);
+        }
+
+        public RDeclMethod dmthd(String names, Object... types) {
+            return new RDeclMethod(null, names, self(), types);
         }
 
         public Class<?> self() {
@@ -180,8 +192,16 @@ public class R {
             return new RField(inst, names, clz);
         }
 
+        public RDeclField dfld(String names) {
+            return new RDeclField(inst, names, clz);
+        }
+
         public RMethod mthd(String names, Object... types) {
             return new RMethod(inst, names, clz, types);
+        }
+
+        public RDeclMethod dmthd(String names, Object... types) {
+            return new RDeclMethod(inst, names, clz, types);
         }
 
         public Object self() {
@@ -223,11 +243,43 @@ public class R {
             }
         }
 
-        public Object invkHidden(Object... args) {
+        public Method self() {
+            if (method == null) {
+                method = lazyMethod.get();
+            }
+            return method;
+        }
+    }
+
+    public static class RDeclMethod {
+        private final Object inst;
+
+        private final Supplier<Method> lazyMethod;
+
+        private Method method = null;
+
+        public RDeclMethod(Object inst, String names, Class<?> clz, Object[] types) {
+            this.inst = inst;
+            this.lazyMethod = () -> {
+                String[] methods = names.split("/");
+                Class<?>[] params = types(types);
+                return cache(
+                    methodsCache, clz, methods, () -> {
+                        for (String method : methods) {
+                            try {
+                                return clz.getDeclaredMethod(method, params);
+                            } catch (NoSuchMethodException ignored) {
+                            }
+                        }
+                        throw new RuntimeException("Method not found from " + Arrays.toString(methods) + " for class " + clz.getName() + " with params " + Arrays.toString(params));
+                    }
+                );
+            };
+        }
+
+        public Object invk(Object... args) {
             try {
-                Method m = self();
-                m.setAccessible(true);
-                return m.invoke(inst, args);
+                return self().invoke(inst, args);
             } catch (InvocationTargetException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -236,6 +288,7 @@ public class R {
         public Method self() {
             if (method == null) {
                 method = lazyMethod.get();
+                method.setAccessible(true);
             }
             return method;
         }
@@ -300,6 +353,48 @@ public class R {
         }
     }
 
+    public static class RDeclField {
+        private final Object inst;
+
+        private final Supplier<Field> lazyField;
+
+        private Field fld = null;
+
+        public RDeclField(Object inst, String names, Class<?> clz) {
+            this.inst = inst;
+            this.lazyField = () -> {
+                String[] fields = names.split("/");
+                return cache(
+                    fieldsCache, clz, fields, () -> {
+                        for (String field : fields) {
+                            try {
+                                return clz.getDeclaredField(field);
+                            } catch (NoSuchFieldException ignored) {
+                            }
+                        }
+                        throw new RuntimeException("Field not found from " + Arrays.toString(fields) + " for class " + clz.getName());
+                    }
+                );
+            };
+        }
+
+        public Object get() {
+            try {
+                return self().get(inst);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Field self() {
+            if (fld == null) {
+                fld = lazyField.get();
+                fld.setAccessible(true);
+            }
+            return fld;
+        }
+    }
+
     public static class RConstructor {
         private final Class<?> clz;
 
@@ -334,6 +429,46 @@ public class R {
         public Constructor<?> self() {
             if (constr == null) {
                 constr = lazyConstr.get();
+            }
+            return constr;
+        }
+    }
+
+    public static class RDeclConstructor {
+        private final Class<?> clz;
+
+        private final Supplier<Constructor<?>> lazyConstr;
+
+        private Constructor<?> constr = null;
+
+        private RDeclConstructor(Class<?> clz, Object... types) {
+            this.clz = clz;
+            this.lazyConstr = () -> {
+                Class<?>[] params = types(types);
+                return cache(
+                    constructorsCache, clz, params, () -> {
+                        try {
+                            return clz.getDeclaredConstructor(params);
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException("Constructor not found for class " + clz.getName() + " with args " + Arrays.toString(params));
+                        }
+                    }
+                );
+            };
+        }
+
+        public RInstance newInst(Object... args) {
+            try {
+                return new RInstance(clz, self().newInstance(args));
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Constructor<?> self() {
+            if (constr == null) {
+                constr = lazyConstr.get();
+                constr.setAccessible(true);
             }
             return constr;
         }
