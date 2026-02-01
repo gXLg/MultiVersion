@@ -667,10 +667,10 @@ function processInterface(part) {
       );
 
       const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
-      const returnStatement = returnTypeTree.type == "void" ? "null" : `${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
+      const body = returnTypeTree.type == "void" ? `${exec};\n                    return null` : `return ${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
       instanceMethodCallers.push(
         `                if ((${reflectionMethodGetter.split("/").map(g => "methodName.equals(\"" + g + "\")").join(" || ")}) && R.methodMatches(method${arguments.map(a => ", " + buildClassGetter(a.type)).join("")})) {\n` +
-        `                    return ${returnStatement};\n` +
+        `                    ${body};\n` +
         `                }`
       );
 
