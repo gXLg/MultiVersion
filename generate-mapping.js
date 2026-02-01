@@ -355,6 +355,10 @@ function processClass(part) {
       if (isStatic) {
         lineToParse = lineToParse.slice(6).trimStart();
       }
+      const isNullable = lineToParse.startsWith("? ");
+      if (isNullable) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
 
       if (isPrivate) {
         if (isProtected) {
@@ -394,6 +398,13 @@ function processClass(part) {
       const returnTypeIndex = brackets(lineToParse, 0, " ");
       const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses, shortClassNames);
 
+      if (returnTypeTree.type == "void") {
+        if (isNullable) {
+          console.log("Void methods can't be nullable!");
+          process.exit(1);
+        }
+      }
+
       const reflectionMethodGetter = lineToParse.slice(returnTypeIndex + 1).trimStart().split("(")[0];
       const argumentsToParse = lineToParse.split("(")[1].slice(0, -1).trim();
       const arguments = [];
@@ -414,18 +425,23 @@ function processClass(part) {
       const argumentsSignature = arguments.map(a => buildSignatureType(a.type));
       const methodName = getMethodName(rawMethodName, argumentsSignature, signatures);
 
-      const assignStatement = returnTypeTree.type == "void" ? "" : "Object __return = ";
       const methodParent = isStatic ? "clazz" : "clazz.inst(this.instance)";
       const methodsArray = isStatic ? staticMethods : instanceMethods;
       const access = isProtected ? "protected" : (isPrivate ? "private" : "public");
       const modifier = isStatic ? "static " : "";
       const invoke = (isProtected || isPrivate) ? "invkHidden" : "invk";
-      const exec = `${assignStatement}${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
-      const returnStatement = returnTypeTree.type == "void" ? "" : `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")};\n`;
+      let body;
+      if (isNullable) {
+        const exec = `Object __return = ${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
+        const returnStatement = `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")}`;
+        body = exec + returnStatement;
+      } else {
+        const exec = `${methodParent}.mthd("${reflectionMethodGetter}"${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).${invoke}(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+        body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", "exec")}`;
+      }
       methodsArray.push(
         `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
-        `        ${exec};\n` +
-        `${returnStatement}` +
+        `        ${body};\n` +
         `    }`
       );
       if (toExtend) {
@@ -463,6 +479,10 @@ function processClass(part) {
       if (toAccess) {
         lineToParse = lineToParse.slice(2).trimStart();
       }
+      const isNullable = lineToParse.startsWith("? ");
+      if (isNullable) {
+        lineToParse = lineToParse.slice(2).trimStart();
+      }
       const isStatic = lineToParse.startsWith("static ");
       if (isStatic) {
         lineToParse = lineToParse.slice(7).trimStart();
@@ -471,6 +491,11 @@ function processClass(part) {
       const fieldTypeIndex = brackets(lineToParse, 0, " ");
       const fieldTypeTree = typeTree(lineToParse.slice(0, fieldTypeIndex), additionalClasses, shortClassNames);
 
+      if (fieldTypeTree.type == "void") {
+        console.log("Fields can't be of type void!");
+        process.exit(1);
+      }
+
       const reflectionFieldGetter = lineToParse.slice(fieldTypeIndex + 1).trim();
       const fieldName = reflectionFieldGetter.split("/").slice(-1)[0] + (toAccess ? "Accessible" : "") + (isStatic ? "" : "Field");
       const getter = toAccess ? "getHidden" : "get";
@@ -478,10 +503,16 @@ function processClass(part) {
       if (isStatic) {
         const fieldMethodName = getMethodName(fieldName, [], staticMethodSignatures);
         const exec = `clazz.fld("${reflectionFieldGetter}").${getter}()`;
+        let body;
+        if (isNullable) {
+          body = `Object __return = ${exec};\n        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")}`;
+        } else {
+          body = `return ${buildWrapper(fieldTypeTree).replace("%", exec)}`;
+        }
+
         staticMethods.push(
           `    public static ${buildTypeString(fieldTypeTree)} ${fieldMethodName}() {\n` +
-          `        Object __return = ${exec};\n` +
-          `        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")};\n` +
+          `        ${body};\n` +
           `    }`
         );
 
@@ -493,16 +524,25 @@ function processClass(part) {
         const getterMethodName = getMethodName("get" + capitalName, [], instanceMethodSignatures);
         const fieldTypeString = buildTypeString(fieldTypeTree);
 
+        const exec = `this.${fieldName}.${getter}()`;
+        let body;
+        if (isNullable) {
+          body = `Object __return = ${exec};\n        return __return == null ? null : ${buildWrapper(fieldTypeTree).replace("%", "__return")}`;
+        } else {
+          body = `return ${buildWrapper(fieldTypeTree).replace("%", exec)}`;
+        }
+
         instanceMethods.push(
           `    public ${fieldTypeString} ${getterMethodName}() {\n` +
-          `        return ${buildWrapper(fieldTypeTree).replace("%", "this." + fieldName + "." + getter + "()")};\n` +
+          `        ${body};\n` +
           `    }`
         );
         if (!toAccess) {
           const setterMethodName = getMethodName("set" + capitalName, [buildSignatureType(fieldTypeTree)], instanceMethodSignatures);
+          const nullCheck = isNullable ? "value == null ? null : " : "";
           instanceMethods.push(
             `    public void ${setterMethodName}(${fieldTypeString} value) {\n` +
-            `        this.${fieldName}.set(${buildUnwrapper(fieldTypeTree).replace("%", "value")});\n` +
+            `        this.${fieldName}.set(${nullCheck}${buildUnwrapper(fieldTypeTree).replace("%", "value")});\n` +
             `    }`
           );
         }
