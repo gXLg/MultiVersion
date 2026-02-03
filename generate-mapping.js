@@ -521,8 +521,7 @@ function processClass(part) {
         );
 
       } else {
-        const rFieldType = toAccess ? "RDeclField" : "RField";
-        instanceFields.push(`    private final R.${rFieldType} ${fieldName};`);
+        instanceFields.push(`    private final R.RField ${fieldName};`);
         instanceFieldInitializers.push(`        this.${fieldName} = rInstance.fld("${reflectionFieldGetter}", ${buildClassGetter(fieldTypeTree)});`);
 
         const capitalName = fieldName.slice(0, 1).toUpperCase() + fieldName.slice(1);
