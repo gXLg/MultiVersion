@@ -1,7 +1,7 @@
 package dev.gxlg.multiversion;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unused")
 public class V {
@@ -14,11 +14,11 @@ public class V {
         R.RClass constants = R.clz("net.minecraft.class_155/net.minecraft.SharedConstants");
         try {
             R.RClass gameVersionClz = R.clz("net.minecraft.class_6489/com.mojang.bridge.game.GameVersion");
-            Object gameVersion = constants.mthd("method_16673/getCurrentVersion", gameVersionClz).invk();
+            Object gameVersion = constants.mthd("method_16673/getCurrentVersion", gameVersionClz.self()).invk();
             version = new MinecraftVersion((String) gameVersionClz.inst(gameVersion).mthd("method_48019/getName", String.class).invk());
         } catch (Exception ignored) {
             R.RClass gameVersionClz = R.clz("net.minecraft.class_6489/net.minecraft.WorldVersion");
-            Object gameVersion = constants.mthd("method_16673/getCurrentVersion", gameVersionClz).invk();
+            Object gameVersion = constants.mthd("method_16673/getCurrentVersion", gameVersionClz.self()).invk();
             version = new MinecraftVersion((String) gameVersionClz.inst(gameVersion).mthd("comp_4025/name", String.class).invk());
         }
         return version;
@@ -43,14 +43,23 @@ public class V {
 
         private final int patch;
 
-        private final Map<String, Integer> cache = new HashMap<>();
+        private final Map<String, Integer> cache = new ConcurrentHashMap<>();
 
         public MinecraftVersion(String version) {
             String[] mainParts = version.split("-", 2);
             String[] nums = mainParts[0].split("\\.");
             this.major = nums.length > 0 ? Integer.parseInt(nums[0]) : 0;
             this.minor = nums.length > 1 ? Integer.parseInt(nums[1]) : 0;
-            this.patch = nums.length > 2 ? Integer.parseInt(nums[2]) : 0;
+            if (nums.length > 2) {
+                if (nums[2].matches("^\\d+$")) {
+                    this.patch = Integer.parseInt(nums[2]);
+                } else {
+                    // snapshot or similar
+                    this.patch = -1;
+                }
+            } else {
+                this.patch = 0;
+            }
         }
 
         public int compare(String other) {

@@ -50,28 +50,6 @@ public class R {
         return cacheMap.computeIfAbsent(Objects.hash(base, Arrays.hashCode(types), Arrays.hashCode(names)), i -> supplier.get());
     }
 
-    private static Class<?>[] types(Object[] types) {
-        Class<?>[] array = new Class[types.length];
-        for (int i = 0; i < types.length; i++) {
-            array[i] = type(types[i]);
-        }
-        return array;
-    }
-
-    private static Class<?> type(Object type) {
-        Class<?> c;
-        if (type instanceof Class<?> clz) {
-            c = clz;
-        } else if (type instanceof RClass rclz) {
-            c = rclz.self();
-        } else if (type instanceof String str) {
-            c = clz(str).self();
-        } else {
-            throw new RuntimeException("Is not a valid Type: " + type.getClass());
-        }
-        return c;
-    }
-
     public static RClass clz(String names) {
         return new RClass(names);
     }
@@ -121,15 +99,6 @@ public class R {
         } catch (Exception e) {
             throw new RuntimeException("Failed to extend class", e);
         }
-    }
-
-    public static MethodHandle lookupMethod() {
-
-        return null;
-    }
-
-    public static VarHandle lookupField() {
-        return null;
     }
 
     public interface RWrapperInterface<T extends RWrapper<T>> {
@@ -282,7 +251,7 @@ public class R {
                             }
                         }
                     }
-                    throw new RuntimeException("Field not found from " + Arrays.toString(fieldNames) + " for " + clz + " of type " + type(fieldType));
+                    throw new RuntimeException("Field not found from " + Arrays.toString(fieldNames) + " for " + clz + " of type " + fieldType);
                 }
             );
         }
