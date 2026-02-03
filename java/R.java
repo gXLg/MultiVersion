@@ -76,7 +76,7 @@ public class R {
         if (!returnType.isAssignableFrom(method.getReturnType())) {
             return false;
         }
-        for (int i = 0; i < types.length; i++) {
+        for (int i = 0; i < types.length - 1; i++) {
             if (!methodParams[i].isAssignableFrom(types[i + 1])) {
                 return false;
             }
