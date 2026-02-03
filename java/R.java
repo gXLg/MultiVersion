@@ -35,11 +35,13 @@ public class R {
 
     private static final Map<ClassLoader, Map<Integer, MethodHandle>> constructorsCache = Collections.synchronizedMap(new WeakHashMap<>());
 
-    private static final Map<ClassLoader, Map<Integer, MethodHandle>> methodsCache = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<ClassLoader, Map<Integer, StoredMethod>> methodsCache = Collections.synchronizedMap(new WeakHashMap<>());
 
-    private static final Map<ClassLoader, Map<Integer, VarHandle>> fieldsCache = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<ClassLoader, Map<Integer, StoredField>> fieldsCache = Collections.synchronizedMap(new WeakHashMap<>());
 
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
+    private static final MethodType STATIC_METHOD_TYPE = MethodType.methodType(Object.class, Object[].class);
 
     private static final MethodType METHOD_TYPE = MethodType.methodType(Object.class, Object.class, Object[].class);
 
@@ -98,6 +100,102 @@ public class R {
                                         .load(superClz.getClassLoader()).getLoaded());
         } catch (Exception e) {
             throw new RuntimeException("Failed to extend class", e);
+        }
+    }
+
+    public interface StoredMethod {
+        Object invk(Object instance, Object... args);
+
+        static StoredMethod of(int args, Object instance, MethodHandle method) {
+            if (instance == null) {
+                return new Static(args, method);
+            } else {
+                return new Instance(args, method);
+            }
+        }
+
+        class Instance implements StoredMethod {
+            private final MethodHandle method;
+
+            private Instance(int args, MethodHandle method) {
+                this.method = method.asSpreader(Object[].class, args).asType(METHOD_TYPE);
+            }
+
+            @Override
+            public Object invk(Object instance, Object... args) {
+                try {
+                    return method.invokeExact(instance, args);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        class Static implements StoredMethod {
+            private final MethodHandle method;
+
+            private Static(int args, MethodHandle method) {
+                this.method = method.asSpreader(Object[].class, args).asType(STATIC_METHOD_TYPE);
+            }
+
+            @Override
+            public Object invk(Object instance, Object... args) {
+                try {
+                    return method.invokeExact(args);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    public interface StoredField {
+        Object get(Object instance);
+
+        void set(Object instance, Object value);
+
+        static StoredField of(Object instance, VarHandle handle) {
+            if (instance == null) {
+                return new Static(handle);
+            } else {
+                return new Instance(handle);
+            }
+        }
+
+        class Instance implements StoredField {
+            private final VarHandle varHandle;
+
+            private Instance(VarHandle handle) {
+                this.varHandle = handle;
+            }
+
+            @Override
+            public Object get(Object instance) {
+                return varHandle.get(instance);
+            }
+
+            @Override
+            public void set(Object instance, Object value) {
+                varHandle.set(instance, value);
+            }
+        }
+
+        class Static implements StoredField {
+            private final VarHandle varHandle;
+
+            private Static(VarHandle handle) {
+                this.varHandle = handle;
+            }
+
+            @Override
+            public Object get(Object instance) {
+                return varHandle.get();
+            }
+
+            @Override
+            public void set(Object instance, Object value) {
+                varHandle.set(value);
+            }
         }
     }
 
@@ -189,9 +287,9 @@ public class R {
     public static class RMethod {
         private final Object inst;
 
-        private final Supplier<MethodHandle> lazyMethod;
+        private final Supplier<StoredMethod> lazyMethod;
 
-        private MethodHandle method = null;
+        private StoredMethod method = null;
 
         public RMethod(Object inst, String names, Class<?> clz, Class<?>[] types) {
             this.inst = inst;
@@ -203,7 +301,7 @@ public class R {
                         if (nameSet.contains(method.getName()) && methodMatches(method, types)) {
                             try {
                                 method.setAccessible(true);
-                                return LOOKUP.unreflect(method).asSpreader(Object[].class, method.getParameterCount()).asType(METHOD_TYPE);
+                                return StoredMethod.of(method.getParameterCount(), inst, LOOKUP.unreflect(method));
                             } catch (IllegalAccessException ignored) {
                             }
                         }
@@ -214,14 +312,10 @@ public class R {
         }
 
         public Object invk(Object... args) {
-            try {
-                return self().invokeExact(inst, args);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
+            return self().invk(inst, args);
         }
 
-        public MethodHandle self() {
+        public StoredMethod self() {
             if (method == null) {
                 method = lazyMethod.get();
             }
@@ -232,9 +326,9 @@ public class R {
     public static class RField {
         private final Object inst;
 
-        private final Supplier<VarHandle> lazyField;
+        private final Supplier<StoredField> lazyField;
 
-        private VarHandle fld = null;
+        private StoredField fld = null;
 
         public RField(Object inst, String names, Class<?> clz, Class<?> fieldType) {
             this.inst = inst;
@@ -246,7 +340,7 @@ public class R {
                         if (nameSet.contains(field.getName()) && fieldMatches(field, fieldType)) {
                             try {
                                 field.setAccessible(true);
-                                return LOOKUP.unreflectVarHandle(field);
+                                return StoredField.of(inst, LOOKUP.unreflectVarHandle(field));
                             } catch (IllegalAccessException ignored) {
                             }
                         }
@@ -257,22 +351,14 @@ public class R {
         }
 
         public void set(Object value) {
-            if (inst == null) {
-                self().set(value);
-            } else {
-                self().set(inst, value);
-            }
+            self().set(inst, value);
         }
 
         public Object get() {
-            if (inst == null) {
-                return self().get();
-            } else {
-                return self().get(inst);
-            }
+            return self().get(inst);
         }
 
-        public VarHandle self() {
+        public StoredField self() {
             if (fld == null) {
                 fld = lazyField.get();
             }

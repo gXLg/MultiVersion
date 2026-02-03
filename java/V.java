@@ -46,20 +46,11 @@ public class V {
         private final Map<String, Integer> cache = new ConcurrentHashMap<>();
 
         public MinecraftVersion(String version) {
-            String[] mainParts = version.split("-", 2);
+            String[] mainParts = version.split("[^0-9.]", 2);
             String[] nums = mainParts[0].split("\\.");
             this.major = nums.length > 0 ? Integer.parseInt(nums[0]) : 0;
             this.minor = nums.length > 1 ? Integer.parseInt(nums[1]) : 0;
-            if (nums.length > 2) {
-                if (nums[2].matches("^\\d+$")) {
-                    this.patch = Integer.parseInt(nums[2]);
-                } else {
-                    // snapshot or similar
-                    this.patch = -1;
-                }
-            } else {
-                this.patch = 0;
-            }
+            this.patch = nums.length > 2 ? Integer.parseInt(nums[2]) : 0;
         }
 
         public int compare(String other) {
