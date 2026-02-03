@@ -763,7 +763,9 @@ function processInterface(part) {
     `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}>${ext} {\n` +
     `${instanceMethods.join("\n\n")}\n` +
     `\n` +
-    `    Object unwrap();\n` +
+    `    default Object unwrap() {\n` +
+    `        return null;\n` +
+    `    }\n` +
     `\n` +
     `    @Override\n` +
     `    default ${wrapperClassName} wrapper() {\n` +
