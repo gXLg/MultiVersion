@@ -16,9 +16,9 @@ function brackets(string, start, endChar) {
   return runner;
 }
 
-function typeTree(type, additionalClasses, shortClassNames) {
+function typeTree(type, additionalClasses, shortClassNames, isInterface) {
   if (type in shortClassNames) {
-    return typeTree(shortClassNames[type], additionalClasses, shortClassNames);
+    return typeTree(shortClassNames[type], additionalClasses, shortClassNames, isInterface);
   }
   if (type.endsWith("[]")) {
     const main = typeTree(type.slice(0, -2), additionalClasses, shortClassNames);
@@ -47,7 +47,7 @@ function typeTree(type, additionalClasses, shortClassNames) {
     const rmain = type.slice(0, start);
     const main = shortClassNames[rmain] ?? rmain;
     if (main.includes("/") || main.startsWith("!")) {
-      console.log("Wrapper classes shouldn't be generic!");
+      console.log("Wrapper classes/interfaces shouldn't be generic!");
       process.exit(1);
     }
     const generics = gens.map(g => typeTree(g, additionalClasses, shortClassNames));
@@ -57,8 +57,8 @@ function typeTree(type, additionalClasses, shortClassNames) {
     if (type.startsWith("!")) {
       type = type.slice(1);
     }
-    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper";
-    additionalClasses.push({ "parent": type, "children": [] });
+    additionalClasses.push({ "parent": (isInterface ? "interface " : "class ") + type, "children": [] });
+    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper" + (isInterface ? "Interface" : "");
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
   if (type == "void") {
@@ -242,16 +242,33 @@ function processClass(part) {
     return;
   }
 
-  // parse extensions
-  const [leftClass, rightClass] = part.parent.includes(" extends ") ? part.parent.split(" extends ").map(c => c.trim()) : [part.parent, null];
+  if (!part.parent.startsWith("class ")) {
+    console.log("Invalid entrypoint: needs to be either class or interface!");
+    process.exit(1);
+  }
+
+  const parts = part.parent.slice(6).trimStart().split(/[ ]+/);
+  const leftClass = parts.shift();
   let extendingClassString = null;
-  if (rightClass != null) {
-    const tree = typeTree(rightClass, additionalClasses, shortClassNames);
+  if (parts.shift() == "extends") {
+    const tree = typeTree(parts.shift(), additionalClasses, shortClassNames);
     if (tree.type != "wrapper") {
       console.log("Wrapper class can only extend other Wrapper classes!");
       process.exit(1);
     }
     extendingClassString = buildTypeString(tree);
+  }
+  const implementingInterfaces = [];
+  if (parts.shift() == "implements") {
+    while (parts.length) {
+      const c = parts.unshift();
+      const tree = typeTree(c, additionalClasses, shortClassNames, true);
+      if (tree.type != "wrapper") {
+        console.log("Wrapper class can only implement other Wrapper interfaces!");
+        process.exit(1);
+      }
+      implementingInterfaces.push(buildTypeString(tree));
+    }
   }
 
   // parse class name
@@ -302,7 +319,6 @@ function processClass(part) {
         while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
           runner ++;
         }
-
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
 
@@ -472,7 +488,7 @@ function processClass(part) {
         );
       }
 
-    } else if (child.parent.includes(" extends ") || child.parent.split(" ").length == 1) {
+    } else if (child.parent.startsWith("class ") || child.parent.startsWith("interface ")) {
       // class
       classes.push(child);
 
@@ -555,6 +571,7 @@ function processClass(part) {
   }
 
   const rInstance = instanceFieldInitializers.length ? "        R.RInstance rInstance = clazz.inst(instance);\n" : "";
+  const impl = implementingInterfaces.length ? " implements " + implementingInterfaces.join(", ") : "";
 
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
@@ -568,7 +585,7 @@ function processClass(part) {
     `import java.lang.reflect.Method;\n` +
     `import java.util.concurrent.Callable;\n` +
     `\n` +
-    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} {\n` +
+    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"}${impl} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
     `    private int superCall = 0;\n` +
@@ -609,15 +626,29 @@ function processClass(part) {
 }
 
 function processInterface(part) {
+  const parts = part.parent.slice(9).trimStart().split(/[ ]+/);
+  const leftClass = parts.shift();
+  const extendingInterfaces = [];
+  if (parts.shift() == "extends") {
+    while (parts.length) {
+      const c = parts.unshift();
+      const tree = typeTree(c, additionalClasses, shortClassNames, true);
+      if (tree.type != "wrapper") {
+        console.log("Wrapper interface can only extend other Wrapper interfaces!");
+        process.exit(1);
+      }
+      extendingInterfaces.push(buildTypeString(tree));
+    }
+  }
+
   // parse class name
-  const leftClass = part.parent.slice(9).trimStart()
   const rGetter = shortClassNames[leftClass] ?? leftClass
   const reflectionClassGetter = rGetter.startsWith("!") ? rGetter.slice(1) : rGetter;
   const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
   if (fullyQualified in processedClasses) {
     return;
   }
-  additionalClasses.push({ "parent": reflectionClassGetter, "children": [] });
+  additionalClasses.push({ "parent": "class " + reflectionClassGetter, "children": [] });
 
   const className = fullyQualified.split(".").slice(-1)[0];
   const wrapperClassName = className.slice(0, -9);
@@ -627,7 +658,7 @@ function processInterface(part) {
   const instanceMethods = [];
   const instanceMethodCallers = [];
 
-  const instanceMethodSignatures = { "wrapper()": 1 };
+  const instanceMethodSignatures = { "wrapper()": 1, "unwrap()": 1 };
 
   for (const child of part.children) {
     if (child.parent.startsWith("<init>")) {
@@ -638,11 +669,25 @@ function processInterface(part) {
     } else if (child.parent.endsWith(")")) {
       // method
       if (child.parent.startsWith("static ")) {
-        console.log("Interface wrappers shouldn't have static methods!");
+        console.log("Interface wrappers shouldn't have static methods, declare them on the auto-generated class instead!");
         process.exit(1);
       }
 
-      const lineToParse = child.parent;
+      let lineToParse = child.parent;
+      const isNullable = lineToParse.startsWith("? ");
+      if (isNullable) {
+        lineToParse = lineToParse.slice(2);
+      }
+      const isDefault = lineToParse.startsWith("default ");
+      if (isDefault) {
+        lineToParse = lineToParse.slice(8);
+      }
+
+      if (isNullable && !isDefault) {
+        console.log("Declaring interface method signature as nullable is not necessary!");
+        process.exit(1);
+      }
+
       const returnTypeIndex = brackets(lineToParse, 0, " ");
       const returnTypeTree = typeTree(lineToParse.slice(0, returnTypeIndex), additionalClasses, shortClassNames);
 
@@ -659,7 +704,6 @@ function processInterface(part) {
         while (runner < argumentsToParse.length && argumentsToParse[runner] == " ") {
           runner ++;
         }
-
         arguments.push({ "name": argumentName, "type": argumentTypeTree });
       }
 
@@ -667,9 +711,27 @@ function processInterface(part) {
       const argumentsSignature = arguments.map(a => buildSignatureType(a.type));
       const methodName = getMethodName(rawMethodName, argumentsSignature, instanceMethodSignatures);
 
-      instanceMethods.push(
-        `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
-      );
+      if (isDefault) {
+        const methodParent = `${wrapperClassName}.clazz.inst(unwrap())`;
+        let body;
+        if (isNullable) {
+          const exec = `Object __return = ${methodParent}.mthd("${reflectionMethodGetter}", ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")});\n`;
+          const returnStatement = `        return __return == null ? null : ${buildWrapper(returnTypeTree).replace("%", "__return")}`;
+          body = exec + returnStatement;
+        } else {
+          const exec = `${methodParent}.mthd("${reflectionMethodGetter}", ${buildClassGetter(returnTypeTree)}${arguments.map(a => ", " + buildClassGetter(a.type)).join("")}).invk(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")})`;
+          body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
+        }
+        instanceMethods.push(
+          `    default ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")})\n` +
+          `        ${body};\n` +
+          `    }`
+        );
+      } else {
+        instanceMethods.push(
+          `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
+        );
+      }
 
       const exec = `this.${methodName}(${arguments.map((a, i) => buildWrapper(a.type).replace("%", "args[" + i + "]")).join(", ")})`;
       const body = returnTypeTree.type == "void" ? `${exec};\n                    return null` : `return ${buildUnwrapper(returnTypeTree).replace("%", exec)}`;
@@ -679,8 +741,8 @@ function processInterface(part) {
         `                }`
       );
 
-    } else if (child.parent.includes(" extends ") || child.parent.split(" ").length == 1) {
-      console.log("Interface wrappers shouldn't have inner classes!");
+    } else if (child.parent.startsWith("class ") || child.parent.startsWith("interface ")) {
+      console.log("Interface wrappers shouldn't have inner classes/interfaces!");
       process.exit(1);
 
     } else {
@@ -690,6 +752,7 @@ function processInterface(part) {
     }
   }
 
+  const ext = extendingInterfaces.length ? ", " + extendingInterfaces.join(", ") : "";
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
     `\n` +
@@ -697,8 +760,10 @@ function processInterface(part) {
     `\n` +
     `import java.lang.reflect.Proxy;\n` +
     `\n` +
-    `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}> {\n` +
+    `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}>${ext} {\n` +
     `${instanceMethods.join("\n\n")}\n` +
+    `\n` +
+    `    Object unwrap();\n` +
     `\n` +
     `    @Override\n` +
     `    default ${wrapperClassName} wrapper() {\n` +

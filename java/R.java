@@ -104,13 +104,13 @@ public class R {
     }
 
     public interface StoredMethod {
-        Object invk(Object instance, Object... args);
+        Object invk(Object instance, Object[] args);
 
-        static StoredMethod of(int args, Object instance, MethodHandle method) {
-            if (instance == null) {
-                return new Static(args, method);
-            } else {
+        static StoredMethod of(int args, boolean isInstance, MethodHandle method) {
+            if (isInstance) {
                 return new Instance(args, method);
+            } else {
+                return new Static(args, method);
             }
         }
 
@@ -122,7 +122,7 @@ public class R {
             }
 
             @Override
-            public Object invk(Object instance, Object... args) {
+            public Object invk(Object instance, Object[] args) {
                 try {
                     return method.invokeExact(instance, args);
                 } catch (Throwable e) {
@@ -139,7 +139,7 @@ public class R {
             }
 
             @Override
-            public Object invk(Object instance, Object... args) {
+            public Object invk(Object instance, Object[] args) {
                 try {
                     return method.invokeExact(args);
                 } catch (Throwable e) {
@@ -154,11 +154,11 @@ public class R {
 
         void set(Object instance, Object value);
 
-        static StoredField of(Object instance, VarHandle handle) {
-            if (instance == null) {
-                return new Static(handle);
-            } else {
+        static StoredField of(boolean isInstance, VarHandle handle) {
+            if (isInstance) {
                 return new Instance(handle);
+            } else {
+                return new Static(handle);
             }
         }
 
@@ -301,7 +301,11 @@ public class R {
                         if (nameSet.contains(method.getName()) && methodMatches(method, types)) {
                             try {
                                 method.setAccessible(true);
-                                return StoredMethod.of(method.getParameterCount(), inst, LOOKUP.unreflect(method));
+                                MethodHandle handle = LOOKUP.unreflect(method);
+                                if (method.isVarArgs()) {
+                                    handle = handle.asFixedArity();
+                                }
+                                return StoredMethod.of(method.getParameterCount(), inst != null, handle);
                             } catch (IllegalAccessException ignored) {
                             }
                         }
@@ -336,11 +340,11 @@ public class R {
             this.lazyField = () -> cache(
                 fieldsCache, clz, new Class[]{ fieldType }, fieldNames, () -> {
                     Set<String> nameSet = Set.of(fieldNames);
-                    for (Field field : clz.getFields()) {
+                    for (Field field : clz.getDeclaredFields()) {
                         if (nameSet.contains(field.getName()) && fieldMatches(field, fieldType)) {
                             try {
                                 field.setAccessible(true);
-                                return StoredField.of(inst, LOOKUP.unreflectVarHandle(field));
+                                return StoredField.of(inst != null, LOOKUP.unreflectVarHandle(field));
                             } catch (IllegalAccessException ignored) {
                             }
                         }
@@ -378,9 +382,13 @@ public class R {
             this.lazyConstr = () -> cache(
                 constructorsCache, clz, types, new String[0], () -> {
                     try {
-                        Constructor<?> c = clz.getConstructor(types);
+                        Constructor<?> c = clz.getDeclaredConstructor(types);
                         c.setAccessible(true);
-                        return LOOKUP.unreflectConstructor(c).asSpreader(Object[].class, c.getParameterCount()).asType(CONSTRUCTOR_TYPE);
+                        MethodHandle handle = LOOKUP.unreflectConstructor(c);
+                        if (c.isVarArgs()) {
+                            handle = handle.asFixedArity();
+                        }
+                        return handle.asSpreader(Object[].class, c.getParameterCount()).asType(CONSTRUCTOR_TYPE);
                     } catch (NoSuchMethodException | IllegalAccessException e) {
                         throw new RuntimeException("Constructor not found for " + clz + " with args " + Arrays.toString(types));
                     }
