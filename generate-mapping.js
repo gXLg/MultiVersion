@@ -207,8 +207,19 @@ function getMethodName(rawMethodName, argumentsSignature, signatures) {
   }
 }
 
-const { root } = JSON.parse(fs.readFileSync("./multi-version.json", "utf-8"));
-const file = fs.readFileSync("src/" + root + "/dev/gxlg/multiversion/multi-version.mapping", "utf-8").trim();
+const inputFile = process.argv[2];
+const outputDir = process.argv[3];
+
+if (!inputFile) {
+  console.log("No input file provided!");
+  process.exit(1);
+}
+
+if (!outputDir) {
+  console.log("No output directory specified!");
+  process.exit(1);
+}
+const file = fs.readFileSync(inputFile, "utf-8").trim();
 
 const rlines = file.split("\n").map(l => l.split("#")[0].trimEnd()).filter(l => l.trim().length);
 const shortClassNames = {};
@@ -791,64 +802,35 @@ while (additionalClasses.length) {
   processClass(additionalClasses.shift());
 }
 
-const genRoot = "src/" + root + "/dev/gxlg/multiversion/gen";
+const genRoot = outputDir + "/dev/gxlg/multiversion/gen";
 if (fs.existsSync(genRoot)) {
   fs.rmSync(genRoot, { "recursive": true });
 }
 for (const fullyQualified in processedClasses) {
-  const fileName = fullyQualified.replace("dev.gxlg.multiversion.gen.", "").replaceAll(".", "/");
+  const fileName = fullyQualified.replace("dev.gxlg.multiversion.gen.", "").replaceAll(".", "/") + ".java";
   const folder = fileName.split("/").slice(0, -1).join("/");
   fs.mkdirSync(genRoot + "/" + folder, { "recursive": true });
-  fs.writeFileSync(genRoot + "/" + fileName + ".java", processedClasses[fullyQualified]);
+  fs.writeFileSync(genRoot + "/" + fileName, processedClasses[fullyQualified]);
   console.log("Generated", fullyQualified);
 }
+console.log("Mapping layer generated!");
 
-console.log("Done generating!");
-
-const adapterRoot = "src/" + root + "/dev/gxlg/multiversion/adapters";
-const genericLetters = "STUVWXYZ";
+const adapterOutputRoot = outputDir + "/dev/gxlg/multiversion/adapters";
+const adapterInputRoot = "./multiversion-adapters";
+let allAdapters = true;
 for (const adapter in genericAdapters) {
-  const adapterBaseClass = adapter.split("$")[0];
-  const fileName = adapter.replaceAll(".", "/");
+  const fileName = adapter.replaceAll(".", "/") + "Adapter.java";
+  const adapterInput = adapterInputRoot + "/" + fileName;
+  if (!fs.existsSync(adapterInput)) {
+    console.log("Please implement the adapter at", adapterInput);
+    allAdapters = false;
+    continue;
+  }
   const folder = fileName.split("/").slice(0, -1).join("/");
-  fs.mkdirSync(adapterRoot + "/" + folder, { "recursive": true });
-  const package = "dev.gxlg.multiversion.adapters." + adapter.split(".").slice(0, -1).join(".");
-  const baseClassName = adapter.split(".").slice(-1)[0];
-  const className = baseClassName + "Adapter";
-  const adapterClassName = baseClassName.replaceAll("$", ".");
-
-  const genericArray = [];
-  const genericWrappers = [];
-  const genericUnwrappers = [];
-  const size = genericAdapters[adapter];
-  for (let i = 0; i < size; i++) {
-    const letter = genericLetters[i];
-    genericArray.push(letter);
-    genericWrappers.push(`Function<Object, ${letter}> wrapper${letter}`);
-    genericUnwrappers.push(`Function<${letter}, Object> unwrapper${letter}`);
-  }
-  const generics = genericArray.join(", ");
-
-  if (!fs.existsSync(adapterRoot + "/" + fileName + "Adapter.java") || fs.readFileSync(adapterRoot + "/" + fileName + "Adapter.java", "utf-8").includes("TODO: implement")) {
-    console.log("Please implement the adapter at", "dev.gxlg.multiversion.adapters." + adapter + "Adapter");
-    fs.writeFileSync(
-      adapterRoot + "/" + fileName + "Adapter.java",
-      `package ${package};\n` +
-      `\n` +
-      `import ${adapterBaseClass};\n` +
-      `import java.util.function.Function;\n` +
-      `\n` +
-      `public class ${className} {\n` +
-      `    public static <${generics}> Function<Object, ${adapterClassName}<${generics}>> wrapper(${genericWrappers.join(", ")}) {\n` +
-      `        // TODO: implement\n` +
-      `        // return object -> ${baseClassName.toLowerCase()};\n` +
-      `    }\n` +
-      `\n` +
-      `    public static <${generics}> Function<${adapterClassName}<${generics}>, Object> unwrapper(${genericUnwrappers.join(", ")}) {\n` +
-      `        // TODO: implement\n` +
-      `        // return ${baseClassName.toLowerCase()} -> object;\n` +
-      `    }\n` +
-      `}\n`
-    );
-  }
+  fs.mkdirSync(adapterOutputRoot + "/" + folder, { "recursive": true });
+  const adapterCode = fs.readFileSync(adapterInput, "utf-8");
+  fs.writeFileSync(adapterOutputRoot + "/" + fileName, adapterCode);
+}
+if (!allAdapters) {
+  process.exit(1);
 }

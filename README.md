@@ -10,6 +10,8 @@
 
 > [!WARNING]
 > Work in progress
+>
+> This project is soon going to be turned into a library
 
 # How is this possible?
 
