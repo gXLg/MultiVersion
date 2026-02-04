@@ -250,7 +250,8 @@ function processClass(part) {
   const parts = part.parent.slice(6).trimStart().split(/[ ]+/);
   const leftClass = parts.shift();
   let extendingClassString = null;
-  if (parts.shift() == "extends") {
+  if (parts[0] == "extends") {
+    parts.shift();
     const tree = typeTree(parts.shift(), additionalClasses, shortClassNames);
     if (tree.type != "wrapper") {
       console.log("Wrapper class can only extend other Wrapper classes!");
@@ -259,7 +260,8 @@ function processClass(part) {
     extendingClassString = buildTypeString(tree);
   }
   const implementingInterfaces = [];
-  if (parts.shift() == "implements") {
+  if (parts[0] == "implements") {
+    parts.shift();
     while (parts.length) {
       const c = parts.unshift();
       const tree = typeTree(c, additionalClasses, shortClassNames, true);
@@ -629,7 +631,8 @@ function processInterface(part) {
   const parts = part.parent.slice(9).trimStart().split(/[ ]+/);
   const leftClass = parts.shift();
   const extendingInterfaces = [];
-  if (parts.shift() == "extends") {
+  if (parts[0] == "extends") {
+    parts.shift();
     while (parts.length) {
       const c = parts.unshift();
       const tree = typeTree(c, additionalClasses, shortClassNames, true);
