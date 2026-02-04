@@ -263,7 +263,7 @@ function processClass(part) {
   if (parts[0] == "implements") {
     parts.shift();
     while (parts.length) {
-      const c = parts.unshift();
+      const c = parts.shift();
       const tree = typeTree(c, additionalClasses, shortClassNames, true);
       if (tree.type != "wrapper") {
         console.log("Wrapper class can only implement other Wrapper interfaces!");
