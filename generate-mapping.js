@@ -84,21 +84,6 @@ function buildTypeString(tree) {
   return main.replaceAll("$", ".");
 }
 
-function buildArgumentTypeString(tree) {
-  const { type, main, generics } = tree;
-  if (type == "array") {
-    return buildTypeString(main) + "[]";
-  }
-  if (type == "generic") {
-    return main.replaceAll("$", ".") + "<" + generics.map(g => buildArgumentTypeString(g)).join(", ") + ">";
-  }
-  if (type == "wrapper") {
-    return main + "I";
-  }
-  return main.replaceAll("$", ".");
-}
-
-
 function buildClassGetter(tree) {
   const { type, main } = tree;
   if (type == "array") {
@@ -306,8 +291,6 @@ function processClass(part) {
   if (fullyQualified in processedClasses) {
     return;
   }
-  // add (dummy) interface for itself
-  additionalClasses.push({ "parent": "interface " + rGetter, "children": [] });
 
   const className = fullyQualified.split(".").slice(-1)[0];
   const package = fullyQualified.split(".").slice(0, -1).join(".");
@@ -354,7 +337,7 @@ function processClass(part) {
 
       if (toExtend) {
         constructors.push(
-          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildArgumentTypeString(a.type) + " " + a.name).join("")}) {\n` +
+          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name).join("")}) {\n` +
           `        this(eClazz, eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
@@ -370,7 +353,7 @@ function processClass(part) {
         extensionConstructor = true;
       } else {
         constructors.push(
-          `    public ${className}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
+          `    public ${className}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
           `        this(clazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
@@ -485,7 +468,7 @@ function processClass(part) {
       }
       const superCall = toExtend ? `        if (this instanceof ${className} && this.getClass() != ${className}.class) superCall++;\n` : "";
       methodsArray.push(
-        `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+        `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
         `${superCall}`  +
         `        ${body};\n` +
         `    }`
@@ -512,7 +495,7 @@ function processClass(part) {
         const accMethodName = getMethodName(rawMethodName, argumentsSignature, signatures);
         const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
         methodsArray.push(
-          `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+          `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
           `        ${returnStatement}${methodName}(${arguments.map(a => a.name).join(", ")});\n` +
           `    }`
         );
@@ -601,7 +584,7 @@ function processClass(part) {
   }
 
   const rInstance = instanceFieldInitializers.length ? "        R.RInstance rInstance = clazz.inst(instance);\n" : "";
-  const impl = implementingInterfaces.length ? implementingInterfaces.map(i => ", " + i).join("") : "";
+  const impl = implementingInterfaces.length ? " implements " + implementingInterfaces.join(", ") : "";
 
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
@@ -615,7 +598,7 @@ function processClass(part) {
     `import java.lang.reflect.Method;\n` +
     `import java.util.concurrent.Callable;\n` +
     `\n` +
-    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} implements ${className}I${impl} {\n` +
+    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"}${impl} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
     `    private int superCall = 0;\n` +
@@ -754,13 +737,13 @@ function processInterface(part) {
           body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
         }
         instanceMethods.push(
-          `    default ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")})\n` +
+          `    default ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")})\n` +
           `        ${body};\n` +
           `    }`
         );
       } else {
         instanceMethods.push(
-          `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")});`
+          `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
         );
       }
 

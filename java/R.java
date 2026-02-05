@@ -199,7 +199,7 @@ public class R {
         }
     }
 
-    public interface RWrapperInterface<T extends RWrapper<T>> {
+    public interface RWrapperInterface<T extends RWrapper<?>> {
         T wrapper();
 
         default Object unwrap() {
