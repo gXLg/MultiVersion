@@ -1,4 +1,35 @@
-// add byte buddy for dynamic class extensions
 dependencies {
-    include(implementation "net.bytebuddy:byte-buddy:1.18.4")
+    // dynamic class extensions
+    implementation "net.bytebuddy:byte-buddy:1.18.4"
+}
+
+class MultiVersionExtension {
+    File inputMappingFile
+}
+
+def extension = project.extensions.create("MultiVersion", MultiVersionExtension)
+def generatedSourceDir = layout.buildDirectory.dir("generated/sources/multiversion/java").get().asFile
+
+tasks.register("generateMultiversionCode", Exec) {
+    group = "generation"
+    description = "Generates reflection layer using Node.js"
+
+    inputs.file extension.inputMappingFile
+    outputs.dir generatedSourceDir
+
+    commandLine "node", "${projectDir}/MultiVersion/generate-mapping.js", extension.inputMappingFile.absolutePath, generatedSourceDir.absolutePath
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedSourceDir
+        }
+    }
+}
+
+project.afterEvaluate {
+    tasks.named("compileJava") {
+        dependsOn generateMultiversionCode
+    }
 }

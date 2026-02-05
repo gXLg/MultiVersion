@@ -201,6 +201,14 @@ public class R {
 
     public interface RWrapperInterface<T extends RWrapper<T>> {
         T wrapper();
+
+        default Object unwrap() {
+            return wrapper().unwrap();
+        }
+
+        default <S> S unwrap(Class<S> clazz) {
+            return wrapper().unwrap(clazz);
+        }
     }
 
     public static class RClass {

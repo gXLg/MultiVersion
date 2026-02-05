@@ -58,7 +58,7 @@ function typeTree(type, additionalClasses, shortClassNames, isInterface) {
       type = type.slice(1);
     }
     additionalClasses.push({ "parent": (isInterface ? "interface " : "class ") + type, "children": [] });
-    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + "Wrapper" + (isInterface ? "Interface" : "");
+    const main = "dev.gxlg.multiversion.gen." + type.split("/").slice(-1)[0] + (isInterface ? "I" : "");
     return { "type": "wrapper", main, "wrapped": true, "generic": false };
   }
   if (type == "void") {
@@ -83,6 +83,21 @@ function buildTypeString(tree) {
   }
   return main.replaceAll("$", ".");
 }
+
+function buildArgumentTypeString(tree) {
+  const { type, main, generics } = tree;
+  if (type == "array") {
+    return buildTypeString(main) + "[]";
+  }
+  if (type == "generic") {
+    return main.replaceAll("$", ".") + "<" + generics.map(g => buildArgumentTypeString(g)).join(", ") + ">";
+  }
+  if (type == "wrapper") {
+    return main + "I";
+  }
+  return main.replaceAll("$", ".");
+}
+
 
 function buildClassGetter(tree) {
   const { type, main } = tree;
@@ -268,7 +283,7 @@ function processClass(part) {
       console.log("Wrapper class can only extend other Wrapper classes!");
       process.exit(1);
     }
-    extendingClassString = buildTypeString(tree);
+    extendingClassString = tree.main;
   }
   const implementingInterfaces = [];
   if (parts[0] == "implements") {
@@ -280,17 +295,19 @@ function processClass(part) {
         console.log("Wrapper class can only implement other Wrapper interfaces!");
         process.exit(1);
       }
-      implementingInterfaces.push(buildTypeString(tree));
+      implementingInterfaces.push(tree.main);
     }
   }
 
   // parse class name
   const rGetter = shortClassNames[leftClass] ?? leftClass
   const reflectionClassGetter = rGetter.startsWith("!") ? rGetter.slice(1) : rGetter;
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "Wrapper";
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0];
   if (fullyQualified in processedClasses) {
     return;
   }
+  // add (dummy) interface for itself
+  additionalClasses.push({ "parent": "interface " + rGetter, "children": [] });
 
   const className = fullyQualified.split(".").slice(-1)[0];
   const package = fullyQualified.split(".").slice(0, -1).join(".");
@@ -337,7 +354,7 @@ function processClass(part) {
 
       if (toExtend) {
         constructors.push(
-          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildTypeString(a.type) + " " + a.name).join("")}) {\n` +
+          `    protected ${className}(R.RClass eClazz${arguments.map(a => ", " + buildArgumentTypeString(a.type) + " " + a.name).join("")}) {\n` +
           `        this(eClazz, eClazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
@@ -353,7 +370,7 @@ function processClass(part) {
         extensionConstructor = true;
       } else {
         constructors.push(
-          `    public ${className}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
+          `    public ${className}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}) {\n` +
           `        this(clazz.constr(${arguments.map(a => buildClassGetter(a.type)).join(", ")}).newInst(${arguments.map(a => buildUnwrapper(a.type).replace("%", a.name)).join(", ")}).self());\n` +
           `    }`
         );
@@ -468,7 +485,7 @@ function processClass(part) {
       }
       const superCall = toExtend ? `        if (this instanceof ${className} && this.getClass() != ${className}.class) superCall++;\n` : "";
       methodsArray.push(
-        `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+        `    ${access} ${modifier}${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}){\n` +
         `${superCall}`  +
         `        ${body};\n` +
         `    }`
@@ -495,7 +512,7 @@ function processClass(part) {
         const accMethodName = getMethodName(rawMethodName, argumentsSignature, signatures);
         const returnStatement = returnTypeTree.type == "void" ? "" : "return ";
         methodsArray.push(
-          `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")}){\n` +
+          `    public ${modifier}${buildTypeString(returnTypeTree)} ${accMethodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")}){\n` +
           `        ${returnStatement}${methodName}(${arguments.map(a => a.name).join(", ")});\n` +
           `    }`
         );
@@ -584,7 +601,7 @@ function processClass(part) {
   }
 
   const rInstance = instanceFieldInitializers.length ? "        R.RInstance rInstance = clazz.inst(instance);\n" : "";
-  const impl = implementingInterfaces.length ? " implements " + implementingInterfaces.join(", ") : "";
+  const impl = implementingInterfaces.length ? implementingInterfaces.map(i => ", " + i).join("") : "";
 
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
@@ -598,7 +615,7 @@ function processClass(part) {
     `import java.lang.reflect.Method;\n` +
     `import java.util.concurrent.Callable;\n` +
     `\n` +
-    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"}${impl} {\n` +
+    `public class ${className} extends ${extendingClassString ?? "R.RWrapper<" + className + ">"} implements ${className}I${impl} {\n` +
     `    public static final R.RClass clazz = R.clz("${reflectionClassGetter}");\n` +
     `\n` +
     `    private int superCall = 0;\n` +
@@ -651,14 +668,14 @@ function processInterface(part) {
         console.log("Wrapper interface can only extend other Wrapper interfaces!");
         process.exit(1);
       }
-      extendingInterfaces.push(buildTypeString(tree));
+      extendingInterfaces.push(tree.main);
     }
   }
 
   // parse class name
   const rGetter = shortClassNames[leftClass] ?? leftClass
   const reflectionClassGetter = rGetter.startsWith("!") ? rGetter.slice(1) : rGetter;
-  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "WrapperInterface";
+  const fullyQualified = "dev.gxlg.multiversion.gen." + reflectionClassGetter.split("/").slice(-1)[0] + "I";
   if (fullyQualified in processedClasses) {
     return;
   }
@@ -672,7 +689,7 @@ function processInterface(part) {
   const instanceMethods = [];
   const instanceMethodCallers = [];
 
-  const instanceMethodSignatures = { "wrapper()": 1, "unwrap()": 1 };
+  const instanceMethodSignatures = { "wrapper()": 1, "unwrap()": 1, "unwrap(Class)": 1 };
 
   for (const child of part.children) {
     if (child.parent.startsWith("<init>")) {
@@ -683,7 +700,7 @@ function processInterface(part) {
     } else if (child.parent.endsWith(")")) {
       // method
       if (child.parent.startsWith("static ")) {
-        console.log("Interface wrappers shouldn't have static methods, declare them on the auto-generated class instead!");
+        console.log("Interface wrappers shouldn't have static methods, declare them on the class instead!");
         process.exit(1);
       }
 
@@ -737,13 +754,13 @@ function processInterface(part) {
           body = returnTypeTree.type == "void" ? exec : `return ${buildWrapper(returnTypeTree).replace("%", exec)}`;
         }
         instanceMethods.push(
-          `    default ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")})\n` +
+          `    default ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")})\n` +
           `        ${body};\n` +
           `    }`
         );
       } else {
         instanceMethods.push(
-          `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildTypeString(a.type) + " " + a.name).join(", ")});`
+          `    ${buildTypeString(returnTypeTree)} ${methodName}(${arguments.map(a => buildArgumentTypeString(a.type) + " " + a.name).join(", ")});`
         );
       }
 
@@ -766,7 +783,7 @@ function processInterface(part) {
     }
   }
 
-  const ext = extendingInterfaces.length ? ", " + extendingInterfaces.join(", ") : "";
+  const ext = extendingInterfaces.length ? extendingInterfaces.map(i => ", " + i).join("") : "";
   processedClasses[fullyQualified] = (
     `package ${package};\n` +
     `\n` +
@@ -776,10 +793,6 @@ function processInterface(part) {
     `\n` +
     `public interface ${className} extends R.RWrapperInterface<${wrapperClassName}>${ext} {\n` +
     `${instanceMethods.join("\n\n")}\n` +
-    `\n` +
-    `    default Object unwrap() {\n` +
-    `        return null;\n` +
-    `    }\n` +
     `\n` +
     `    @Override\n` +
     `    default ${wrapperClassName} wrapper() {\n` +
