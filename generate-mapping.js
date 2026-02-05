@@ -682,7 +682,7 @@ function processInterface(part) {
   additionalClasses.push({ "parent": "class " + reflectionClassGetter, "children": [] });
 
   const className = fullyQualified.split(".").slice(-1)[0];
-  const wrapperClassName = className.slice(0, -9);
+  const wrapperClassName = className.slice(0, -1);
   const package = fullyQualified.split(".").slice(0, -1).join(".");
 
   // work out the body
