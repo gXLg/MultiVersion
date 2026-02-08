@@ -1,3 +1,9 @@
+> [!NOTE]
+> This repo is getting archived, because I've decided to split the tool into two parts and made some actual integration instead of submoduling this time. ([<kbd>Version't Library</kbd>](https://github.com/gXLg/versiont-lib) and [<kbd>Version't Toolchain</kbd>](https://github.com/gXLg/versiont-toolchain))
+>
+> Documentation is currently still WIP, but you can get some insight by looking at the [<kbd>Wiki</kbd>](https://github.com/gXLg/versiont-toolchain/wiki)
+
+
 # MultiVersion
 
 <img src="/multi.svg" height="64px" align="left">
